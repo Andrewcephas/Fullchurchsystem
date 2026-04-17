@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Sparkles, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 
 const themes = ["Faith", "Prayer", "Love", "Hope", "Worship", "Grace", "Strength", "Healing", "Salvation", "Peace"];
 
@@ -16,19 +16,17 @@ const SocialQuotes = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const generateQuotes = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-quotes", {
-        body: { theme },
-      });
-      if (error) throw error;
-      setQuotes(data.quotes || []);
-    } catch {
-      toast({ title: "Error generating quotes", variant: "destructive" });
-    }
-    setLoading(false);
-  };
+   const generateQuotes = async () => {
+     setLoading(true);
+     try {
+       const response = await apiService.generateSocialQuotes(theme);
+       if (response.error) throw new Error(response.error);
+       setQuotes(response.data?.quotes || []);
+     } catch {
+       toast({ title: "Error generating quotes", variant: "destructive" });
+     }
+     setLoading(false);
+   };
 
   const copyQuote = (q: string) => {
     navigator.clipboard.writeText(q);
