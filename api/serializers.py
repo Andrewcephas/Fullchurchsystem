@@ -14,11 +14,30 @@ from api.models import (
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """User serializer"""
+    """User serializer with role and branch information"""
+    role = serializers.SerializerMethodField()
+    branch = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'role', 'branch']
         read_only_fields = ['id']
+
+    def get_role(self, obj):
+        try:
+            user_role = obj.role
+            return user_role.role
+        except:
+            return None
+
+    def get_branch(self, obj):
+        try:
+            user_role = obj.role
+            if user_role.branch:
+                return user_role.branch.branch_name
+            return None
+        except:
+            return None
 
 
 class BranchSerializer(serializers.ModelSerializer):

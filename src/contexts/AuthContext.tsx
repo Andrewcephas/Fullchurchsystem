@@ -59,26 +59,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await apiService.post('/auth/login/', {
-        username,
-        password,
-      });
+   const login = async (username: string, password: string): Promise<boolean> => {
+     try {
+       setLoading(true);
+       const response = await apiService.post('/auth/login/', {
+         username,
+         password,
+       });
 
-      if (response.data) {
-        setUser(response.data.user);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Login failed:', error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+       if (response.data && response.data.user) {
+         setUser(response.data.user);
+         return true;
+       }
+       // If we get here, either response.error exists or data lacks user
+       console.error('Login response missing user data:', response);
+       return false;
+     } catch (error) {
+       console.error('Login failed:', error);
+       return false;
+     } finally {
+       setLoading(false);
+     }
+   };
 
   const logout = async () => {
     try {

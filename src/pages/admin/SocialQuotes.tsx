@@ -21,7 +21,10 @@ const SocialQuotes = () => {
      try {
        const response = await apiService.generateSocialQuotes(theme);
        if (response.error) throw new Error(response.error);
-       setQuotes(response.data?.quotes || []);
+       // Backend returns { quotes: [{quote_text, author, reference, ...}] }
+       const quoteObjects = response.data?.quotes || [];
+       const quoteTexts = quoteObjects.map((q: { quote_text: string }) => q.quote_text);
+       setQuotes(quoteTexts);
      } catch {
        toast({ title: "Error generating quotes", variant: "destructive" });
      }

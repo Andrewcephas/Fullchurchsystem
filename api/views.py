@@ -540,7 +540,7 @@ class SocialQuoteViewSet(viewsets.ModelViewSet):
             selected_quote.save()
             
             serializer = self.get_serializer(selected_quote)
-            return Response(serializer.data)
+            return Response({'quotes': [serializer.data]})
         else:
             # No quotes in database, return a fallback message
             return Response(

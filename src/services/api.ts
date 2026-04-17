@@ -27,6 +27,16 @@ class ApiService {
     'Content-Type': 'application/json',
   };
 
+  private getCSRFToken(): string | null {
+    const name = 'csrftoken';
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()!.split(';').shift() || null;
+    }
+    return null;
+  }
+
   /**
    * Make HTTP request to Django API
    */
@@ -36,10 +46,13 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${this.baseUrl}${endpoint}`;
+      const method = options.method?.toUpperCase() || 'GET';
+      const csrfToken = this.getCSRFToken();
       const config: RequestInit = {
         ...options,
         headers: {
           ...this.headers,
+          ...(csrfToken && ['POST','PUT','PATCH','DELETE'].includes(method) ? { 'X-CSRFToken': csrfToken } : {}),
           ...options.headers,
         },
         credentials: 'include', // Include cookies for session auth
@@ -516,11 +529,10 @@ class ApiService {
      return this.post('/social-quotes/generate/', { theme });
    }
 
-   async getSocialQuotes(filters?: Record<string, any>) {
-     return this.get('/social-quotes/', filters);
-   }
- }
-}
+    async getSocialQuotes(filters?: Record<string, any>) {
+      return this.get('/social-quotes/', filters);
+    }
+  }
 
 export default new ApiService();
 export type { ApiResponse, PaginatedResponse };
