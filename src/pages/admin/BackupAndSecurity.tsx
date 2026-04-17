@@ -98,84 +98,46 @@ const BackupAndSecurity = () => {
     );
   }
 
-  // Fetch backup logs
-  const { data: backupLogs = [], isLoading: isLoadingBackups } = useQuery({
-    queryKey: ["backup-logs"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("backup_logs")
-        .select("*")
-        .order("started_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data as BackupLog[];
-    },
-  });
+   // Fetch backup logs
+   const { data: backupLogs = [], isLoading: isLoadingBackups } = useQuery({
+     queryKey: ["backup-logs"],
+     queryFn: async () => {
+       const response = await apiService.getBackupLogs({ limit: 20 });
+       return (response.data?.results || response.data || []) as BackupLog[];
+     },
+   });
 
-  // Fetch data access logs
-  const { data: accessLogs = [], isLoading: isLoadingAccessLogs } = useQuery({
-    queryKey: ["data-access-logs"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("data_access_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data as DataAccessLog[];
-    },
-  });
+   // Fetch data access logs
+   const { data: accessLogs = [], isLoading: isLoadingAccessLogs } = useQuery({
+     queryKey: ["data-access-logs"],
+     queryFn: async () => {
+       const response = await apiService.getDataAccessLogs({ limit: 50 });
+       return (response.data?.results || response.data || []) as DataAccessLog[];
+     },
+   });
 
-  // Create backup mutation
-  const createBackupMutation = useMutation({
-    mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Create a backup log entry
-      const { error } = await supabase
-        .from("backup_logs")
-        .insert({
-          backup_type: backupType,
-          status: "in_progress",
-          initiated_by: user?.id,
-          retention_days: 30,
-        });
-
-      if (error) throw error;
-
-      // In a real scenario, this would trigger an actual backup process
-      // For now, we'll simulate it by updating the status after a delay
-      setTimeout(async () => {
-        await supabase
-          .from("backup_logs")
-          .update({
-            status: "completed",
-            completed_at: new Date().toISOString(),
-            backup_size_bytes: Math.floor(Math.random() * 100000000) + 10000000,
-            records_backed_up: Math.floor(Math.random() * 10000) + 1000,
-          })
-          .eq("status", "in_progress")
-          .limit(1);
-
-        queryClient.invalidateQueries({ queryKey: ["backup-logs"] });
-      }, 3000);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["backup-logs"] });
-      setIsBackupDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Backup process initiated successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to initiate backup",
-        variant: "destructive",
-      });
-    },
-  });
+   // Create backup mutation
+   const createBackupMutation = useMutation({
+     mutationFn: async () => {
+       const response = await apiService.createBackup(backupType);
+       if (response.error) throw new Error(response.error);
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ["backup-logs"] });
+       setIsBackupDialogOpen(false);
+       toast({
+         title: "Success",
+         description: "Backup process initiated successfully",
+       });
+     },
+     onError: () => {
+       toast({
+         title: "Error",
+         description: "Failed to initiate backup",
+         variant: "destructive",
+       });
+     },
+   });
 
   const formatBytes = (bytes: number) => {
     if (!bytes) return "0 B";

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Send, Mail, MailOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 
 const Messages = () => {
@@ -20,45 +20,52 @@ const Messages = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setCurrentUserId(user.id);
+   useEffect(() => {
+     const init = async () => {
+       // Fetch current user
+       const userResponse = await apiService.getCurrentUser();
+       if (!userResponse.data) return;
+       const user = userResponse.data;
+       setCurrentUserId(user.id || user.user_id);
 
-      // Fetch other admins (branch_admin or super_admin)
-      const { data: roles } = await supabase.from("user_roles").select("user_id, role, branches(branch_name)").neq("user_id", user.id);
-      if (roles) setAdmins(roles);
+       // Fetch other admins (branch_admin or super_admin)
+       const rolesResponse = await apiService.getUserRoles();
+       const roles = rolesResponse.data?.results || rolesResponse.data || [];
+       setAdmins(roles.filter((r: any) => r.user_id !== user.id && (r.role === "super_admin" || r.role === "branch_admin")));
 
-      // Fetch messages
-      const { data: msgs } = await supabase.from("private_messages").select("*")
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order("created_at", { ascending: false });
-      if (msgs) setMessages(msgs);
-      setLoading(false);
-    };
-    init();
-  }, []);
+       // Fetch messages - need to get both sent and received
+       // API endpoint might need to support filtering. For now, get all and filter?
+       // Better approach: use getPrivateMessages with sender/receiver filter
+       // But API doesn't have OR filter. We'll fetch all messages for current user
+       const msgsResponse = await apiService.getPrivateMessages({ sender_id: user.id || user.user_id });
+       const sentResponse = await apiService.getPrivateMessages({ receiver_id: user.id || user.user_id });
+       const sentMsgs = sentResponse.data?.results || sentResponse.data || [];
+       const receivedMsgs = msgsResponse.data?.results || msgsResponse.data || [];
+       setMessages([...receivedMsgs, ...sentMsgs].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+       setLoading(false);
+     };
+     init();
+   }, []);
 
-  const handleSend = async () => {
-    if (!message.trim() || !receiverId) { toast({ title: "Select recipient and type message", variant: "destructive" }); return; }
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error } = await supabase.from("private_messages").insert({ sender_id: user.id, receiver_id: receiverId, message });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Message sent" }); setMessage("");
+   const handleSend = async () => {
+     if (!message.trim() || !receiverId) { toast({ title: "Select recipient and type message", variant: "destructive" }); return; }
+     const response = await apiService.createPrivateMessage({ sender_id: currentUserId, receiver_id: receiverId, message });
+     if (response.error) { toast({ title: "Error", description: response.error, variant: "destructive" }); return; }
+     toast({ title: "Message sent" }); setMessage("");
 
-    // Refresh
-    const { data: msgs } = await supabase.from("private_messages").select("*")
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order("created_at", { ascending: false });
-    if (msgs) setMessages(msgs);
-  };
+     // Refresh
+     const msgsResponse = await apiService.getPrivateMessages({ sender_id: currentUserId });
+     const sentResponse = await apiService.getPrivateMessages({ receiver_id: currentUserId });
+     const sentMsgs = sentResponse.data?.results || sentResponse.data || [];
+     const receivedMsgs = msgsResponse.data?.results || msgsResponse.data || [];
+     setMessages([...receivedMsgs, ...sentMsgs].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+   };
 
-  const markRead = async (id: string) => {
-    await supabase.from("private_messages").update({ is_read: true }).eq("id", id);
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, is_read: true } : m));
-  };
+   const markRead = async (id: string) => {
+     const response = await apiService.updatePrivateMessage(id, { is_read: true });
+     if (response.error) return;
+     setMessages(prev => prev.map(m => m.id === id ? { ...m, is_read: true } : m));
+   };
 
   const getAdminLabel = (userId: string) => {
     const admin = admins.find(a => a.user_id === userId);

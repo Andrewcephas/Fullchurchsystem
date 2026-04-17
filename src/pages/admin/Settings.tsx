@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings as SettingsIcon, Save, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 import { siteSettingsDefaults, type SiteSettings } from "@/hooks/use-site-settings";
 
 const Settings = () => {
@@ -15,20 +15,18 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase.from("site_settings").select("key, value");
-      if (data && data.length > 0) {
-        const merged = { ...siteSettingsDefaults };
-        data.forEach((row) => {
-          if (row.key in merged) (merged as any)[row.key] = row.value;
-        });
-        setSettings(merged);
-      }
-      setLoading(false);
-    };
-    fetch();
-  }, []);
+   useEffect(() => {
+     const fetch = async () => {
+       const response = await apiService.getSiteSettings();
+       if (response.data) {
+         const merged = { ...siteSettingsDefaults };
+         Object.assign(merged, response.data);
+         setSettings(merged);
+       }
+       setLoading(false);
+     };
+     fetch();
+   }, []);
 
   const saveSetting = async (key: string, value: any) => {
     const { error } = await supabase
@@ -37,21 +35,16 @@ const Settings = () => {
     return error;
   };
 
-  const handleSaveAll = async () => {
-    setSaving(true);
-    const keys = Object.keys(settings) as (keyof SiteSettings)[];
-    let hasError = false;
-    for (const key of keys) {
-      const error = await saveSetting(key, settings[key]);
-      if (error) { hasError = true; break; }
-    }
-    setSaving(false);
-    if (hasError) {
-      toast({ title: "Error saving settings", variant: "destructive" });
-    } else {
-      toast({ title: "All settings saved successfully!" });
-    }
-  };
+   const handleSaveAll = async () => {
+     setSaving(true);
+     const response = await apiService.bulkUpdateSiteSettings(settings as Record<string, any>);
+     setSaving(false);
+     if (response.error) {
+       toast({ title: "Error saving settings", variant: "destructive" });
+     } else {
+       toast({ title: "All settings saved successfully!" });
+     }
+   };
 
   const addService = () => {
     setSettings({

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { MessageSquare, Send, Trash2, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import BranchSelector from "@/components/admin/BranchSelector";
 
@@ -23,34 +23,34 @@ const Communications = () => {
 
   const branchFilter = isSuperAdmin ? (selectedBranch === "all" ? null : selectedBranch) : userBranch;
 
-  const fetchHistory = async () => {
-    let q = supabase.from("communications").select("*").order("created_at", { ascending: false });
-    if (branchFilter) q = q.eq("branch_id", branchFilter);
-    const { data } = await q;
-    if (data) setHistory(data);
-    setLoading(false);
-  };
+   const fetchHistory = async () => {
+     const response = await apiService.getCommunications(branchFilter ? { branch_id: branchFilter } : undefined);
+     if (response.data) setHistory(response.data.results || response.data);
+     setLoading(false);
+   };
 
-  useEffect(() => { fetchHistory(); }, [selectedBranch, userBranch]);
+   useEffect(() => { fetchHistory(); }, [selectedBranch, userBranch]);
 
-  const handleSend = async () => {
-    if (!message.trim()) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("communications").insert({ message, user_id: user.id, branch_id: userBranch || null });
-    setMessage(""); toast({ title: "Announcement saved" }); fetchHistory();
-  };
+   const handleSend = async () => {
+     if (!message.trim()) return;
+     const payload = { message, branch_id: userBranch || null };
+     const response = await apiService.createCommunication(payload);
+     if (response.error) { toast({ title: "Error", description: response.error, variant: "destructive" }); return; }
+     setMessage(""); toast({ title: "Announcement saved" }); fetchHistory();
+   };
 
-  const handleUpdate = async () => {
-    if (!editMessage.trim() || !editId) return;
-    await supabase.from("communications").update({ message: editMessage }).eq("id", editId);
-    setEditOpen(false); setEditId(null); toast({ title: "Updated" }); fetchHistory();
-  };
+   const handleUpdate = async () => {
+     if (!editMessage.trim() || !editId) return;
+     const response = await apiService.updateCommunication(editId, { message: editMessage });
+     if (response.error) { toast({ title: "Error", description: response.error, variant: "destructive" }); return; }
+     setEditOpen(false); setEditId(null); toast({ title: "Updated" }); fetchHistory();
+   };
 
-  const handleDelete = async (id: string) => {
-    await supabase.from("communications").delete().eq("id", id);
-    toast({ title: "Deleted" }); fetchHistory();
-  };
+   const handleDelete = async (id: string) => {
+     const response = await apiService.deleteCommunication(id);
+     if (response.error) { toast({ title: "Error", description: response.error, variant: "destructive" }); return; }
+     toast({ title: "Deleted" }); fetchHistory();
+   };
 
   return (
     <div className="space-y-6">
