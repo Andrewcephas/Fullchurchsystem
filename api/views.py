@@ -634,13 +634,11 @@ from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     """User login with session authentication"""
     permission_classes = []
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+    authentication_classes = []
 
     def post(self, request):
         username = request.data.get('username')
@@ -667,8 +665,12 @@ class LoginView(APIView):
             )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(APIView):
     """User logout"""
+    permission_classes = []
+    authentication_classes = []
+
     def post(self, request):
         logout(request)
         return Response({'message': 'Logout successful'})
