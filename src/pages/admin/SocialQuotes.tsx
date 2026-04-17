@@ -33,57 +33,101 @@ const SocialQuotes = () => {
     toast({ title: "Quote copied to clipboard!" });
   };
 
-  const downloadAsImage = (q: string, index: number) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1080;
-    const ctx = canvas.getContext("2d")!;
+   const downloadAsImage = async (q: string, index: number) => {
+     const canvas = document.createElement("canvas");
+     canvas.width = 1080;
+     canvas.height = 1080;
+     const ctx = canvas.getContext("2d")!;
 
-    // Background gradient
-    const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
-    grad.addColorStop(0, "#6b21a8");
-    grad.addColorStop(1, "#4c1d95");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1080, 1080);
+     // Nature background gradient (deep forest green to serene blue)
+     const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1080);
+     bgGrad.addColorStop(0, "#0f4c3a");
+     bgGrad.addColorStop(0.5, "#1e7a5c");
+     bgGrad.addColorStop(1, "#0f4c3a");
+     ctx.fillStyle = bgGrad;
+     ctx.fillRect(0, 0, 1080, 1080);
 
-    // Gold border
-    ctx.strokeStyle = "#d4a843";
-    ctx.lineWidth = 16;
-    ctx.strokeRect(40, 40, 1000, 1000);
+     // Add subtle texture/noise for depth
+     ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+     for (let i = 0; i < 5000; i++) {
+       ctx.fillRect(Math.random() * 1080, Math.random() * 1080, 2, 2);
+     }
 
-    // Quote text
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 42px serif";
-    ctx.textAlign = "center";
-    const words = q.split(" ");
-    let lines: string[] = [];
-    let currentLine = "";
-    words.forEach((word) => {
-      const test = currentLine + (currentLine ? " " : "") + word;
-      if (ctx.measureText(test).width > 880) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = test;
-      }
-    });
-    if (currentLine) lines.push(currentLine);
-    const lineHeight = 56;
-    const startY = 540 - (lines.length * lineHeight) / 2;
-    lines.forEach((line, i) => {
-      ctx.fillText(line, 540, startY + i * lineHeight);
-    });
+     // Gold border
+     ctx.strokeStyle = "#d4a843";
+     ctx.lineWidth = 16;
+     ctx.strokeRect(40, 40, 1000, 1000);
 
-    // Church name
-    ctx.fillStyle = "#d4a843";
-    ctx.font = "bold 28px sans-serif";
-    ctx.fillText("— Global Power Church", 540, 940);
+     // Inner glow border
+     ctx.strokeStyle = "rgba(212, 168, 67, 0.3)";
+     ctx.lineWidth = 4;
+     ctx.strokeRect(56, 56, 968, 968);
 
-    const link = document.createElement("a");
-    link.download = `gpc-quote-${index + 1}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  };
+     // Load and draw church logo watermark (semi-transparent)
+     try {
+       const logoImg = new Image();
+       logoImg.crossOrigin = "anonymous";
+       await new Promise<void>((resolve, reject) => {
+         logoImg.onload = () => resolve();
+         logoImg.onerror = reject;
+         logoImg.src = "/images/gpc-logo.png";
+       });
+       ctx.globalAlpha = 0.15;
+       const logoSize = 200;
+       ctx.drawImage(logoImg, 540 - logoSize/2, 540 - logoSize/2, logoSize, logoSize);
+       ctx.globalAlpha = 1.0;
+     } catch (err) {
+       console.warn("Could not load watermark logo:", err);
+     }
+
+     // Quote text with shadow
+     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+     ctx.shadowBlur = 10;
+     ctx.shadowOffsetX = 3;
+     ctx.shadowOffsetY = 3;
+     ctx.fillStyle = "#ffffff";
+     ctx.font = "bold 44px Georgia, serif";
+     ctx.textAlign = "center";
+     ctx.textBaseline = "middle";
+
+     // Word wrap
+     const words = q.split(" ");
+     let lines: string[] = [];
+     let currentLine = "";
+     words.forEach((word) => {
+       const test = currentLine + (currentLine ? " " : "") + word;
+       if (ctx.measureText(test).width > 920) {
+         lines.push(currentLine);
+         currentLine = word;
+       } else {
+         currentLine = test;
+       }
+     });
+     if (currentLine) lines.push(currentLine);
+     const lineHeight = 58;
+     const totalHeight = lines.length * lineHeight;
+     const startY = 540 - totalHeight / 2 + lineHeight / 2;
+
+     lines.forEach((line, i) => {
+       ctx.fillText(line, 540, startY + i * lineHeight);
+     });
+
+     // Reset shadow
+     ctx.shadowColor = "transparent";
+     ctx.shadowBlur = 0;
+     ctx.shadowOffsetX = 0;
+     ctx.shadowOffsetY = 0;
+
+     // Church name with decorative line
+     ctx.fillStyle = "#d4a843";
+     ctx.font = "bold 26px Arial, sans-serif";
+     ctx.fillText("— Global Power Church", 540, 940);
+
+     const link = document.createElement("a");
+     link.download = `gpc-quote-${index + 1}.png`;
+     link.href = canvas.toDataURL("image/png");
+     link.click();
+   };
 
   return (
     <div className="space-y-6">

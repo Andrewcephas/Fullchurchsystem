@@ -525,3 +525,40 @@ class SiteSettings(models.Model):
 
     def __str__(self):
         return self.key
+
+
+class SocialQuote(models.Model):
+    """Social media quotes with church branding"""
+    THEME_CHOICES = [
+        ('Faith', 'Faith'),
+        ('Prayer', 'Prayer'),
+        ('Love', 'Love'),
+        ('Hope', 'Hope'),
+        ('Worship', 'Worship'),
+        ('Grace', 'Grace'),
+        ('Strength', 'Strength'),
+        ('Healing', 'Healing'),
+        ('Salvation', 'Salvation'),
+        ('Peace', 'Peace'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    theme = models.CharField(max_length=50, choices=THEME_CHOICES)
+    quote_text = models.TextField()
+    author = models.CharField(max_length=255, null=True, blank=True)
+    reference = models.CharField(max_length=255, null=True, blank=True)  # Bible reference
+    is_active = models.BooleanField(default=True)
+    usage_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'social_quotes'
+        ordering = ['-usage_count', '?']
+        indexes = [
+            models.Index(fields=['theme', 'is_active']),
+            models.Index(fields=['usage_count']),
+        ]
+
+    def __str__(self):
+        return f"{self.theme}: {self.quote_text[:50]}..."
+

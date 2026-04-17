@@ -9,7 +9,7 @@ from api.models import (
     Branch, Member, UserRole, Attendance, AttendanceMember, Finance, Event,
     Sermon, SundaySchool, Notice, PrayerRequest, Communication, MemberTransfer,
     NotificationPreference, NotificationSent, BackupLog, DataAccessLog,
-    PrivateMessage, SiteSettings
+    PrivateMessage, SiteSettings, SocialQuote
 )
 
 
@@ -218,3 +218,11 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         model = SiteSettings
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class SocialQuoteSerializer(serializers.ModelSerializer):
+    """Social quote serializer"""
+    class Meta:
+        model = SocialQuote
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'usage_count']

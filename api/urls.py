@@ -9,7 +9,7 @@ from api.views import (
     BranchViewSet, MemberViewSet, UserRoleViewSet, AttendanceViewSet,
     FinanceViewSet, EventViewSet, SermonViewSet, NoticeViewSet,
     PrayerRequestViewSet, MemberTransferViewSet, NotificationPreferenceViewSet,
-    BackupLogViewSet, DataAccessLogViewSet, AnalyticsViewSet,
+    BackupLogViewSet, DataAccessLogViewSet, SocialQuoteViewSet, AnalyticsViewSet,
     LoginView, LogoutView, UserView
 )
 
@@ -28,6 +28,7 @@ router.register(r'member-transfers', MemberTransferViewSet)
 router.register(r'notification-preferences', NotificationPreferenceViewSet)
 router.register(r'backup-logs', BackupLogViewSet)
 router.register(r'data-access-logs', DataAccessLogViewSet)
+router.register(r'social-quotes', SocialQuoteViewSet, basename='social-quotes')
 router.register(r'analytics', AnalyticsViewSet, basename='analytics')
 
 app_name = 'api'

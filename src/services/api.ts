@@ -507,9 +507,19 @@ class ApiService {
     return this.get('/auth/user/');
   }
 
-  async register(userData: any) {
-    return this.post('/auth/register/', userData);
-  }
+   async register(userData: any) {
+     return this.post('/auth/register/', userData);
+   }
+
+   // Social Quotes
+   async generateSocialQuotes(theme: string) {
+     return this.post('/social-quotes/generate/', { theme });
+   }
+
+   async getSocialQuotes(filters?: Record<string, any>) {
+     return this.get('/social-quotes/', filters);
+   }
+ }
 }
 
 export default new ApiService();

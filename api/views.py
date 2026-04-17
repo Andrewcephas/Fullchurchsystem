@@ -18,7 +18,7 @@ from api.models import (
     Branch, Member, UserRole, Attendance, AttendanceMember, Finance, Event,
     Sermon, SundaySchool, Notice, PrayerRequest, Communication, MemberTransfer,
     NotificationPreference, NotificationSent, BackupLog, DataAccessLog,
-    PrivateMessage, SiteSettings
+    PrivateMessage, SiteSettings, SocialQuote
 )
 from api.serializers import (
     BranchSerializer, MemberSerializer, UserRoleSerializer, AttendanceSerializer,
@@ -26,7 +26,7 @@ from api.serializers import (
     SundaySchoolSerializer, NoticeSerializer, PrayerRequestSerializer,
     CommunicationSerializer, MemberTransferSerializer, NotificationPreferenceSerializer,
     NotificationSentSerializer, BackupLogSerializer, DataAccessLogSerializer,
-    PrivateMessageSerializer, SiteSettingsSerializer, UserSerializer
+    PrivateMessageSerializer, SiteSettingsSerializer, UserSerializer, SocialQuoteSerializer
 )
 
 
@@ -495,6 +495,68 @@ class DataAccessLogViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['operation', 'table_name', 'user']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
+
+
+class SocialQuoteViewSet(viewsets.ModelViewSet):
+    """Social media quotes management with generation"""
+    queryset = SocialQuote.objects.filter(is_active=True)
+    serializer_class = SocialQuoteSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['theme', 'is_active']
+    search_fields = ['quote_text', 'author', 'reference']
+    ordering_fields = ['usage_count', 'created_at']
+    ordering = ['-usage_count']
+
+    def get_queryset(self):
+        """Return active quotes ordered by usage"""
+        return SocialQuote.objects.filter(is_active=True).order_by('-usage_count', '?')
+
+    @action(detail=False, methods=['post'])
+    def generate(self, request):
+        """Generate/retrieve a quote for a specific theme"""
+        theme = request.data.get('theme', 'Faith')
+        
+        # Validate theme
+        valid_themes = [choice[0] for choice in SocialQuote.THEME_CHOICES]
+        if theme not in valid_themes:
+            return Response(
+                {'error': f'Invalid theme. Choose from: {", ".join(valid_themes)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get a random quote for this theme, weighted by usage count
+        import random
+        quotes = SocialQuote.objects.filter(theme=theme, is_active=True)
+        
+        if quotes.exists():
+            # Weighted random selection: lower usage_count = higher chance
+            quotes_list = list(quotes)
+            weights = [1 / (q.usage_count + 1) for q in quotes_list]
+            selected_quote = random.choices(quotes_list, weights=weights, k=1)[0]
+            
+            # Increment usage count
+            selected_quote.usage_count += 1
+            selected_quote.save()
+            
+            serializer = self.get_serializer(selected_quote)
+            return Response(serializer.data)
+        else:
+            # No quotes in database, return a fallback message
+            return Response(
+                {'error': f'No quotes available for theme: {theme}', 
+                 'theme': theme,
+                 'quote': 'Please add quotes to the database through the admin panel.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=False, methods=['get'])
+    def themes(self, request):
+        """Get all available themes"""
+        return Response([
+            {'value': choice[0], 'label': choice[1]}
+            for choice in SocialQuote.THEME_CHOICES
+        ])
 
 
 class AnalyticsViewSet(viewsets.ViewSet):
