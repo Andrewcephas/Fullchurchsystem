@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, TrendingUp, Users, DollarSign, Building2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import BranchSelector from "@/components/admin/BranchSelector";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
@@ -19,57 +19,62 @@ const Analytics = () => {
 
   const branchFilter = isSuperAdmin ? (selectedBranch === "all" ? null : selectedBranch) : userBranch;
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      let mQ = supabase.from("members").select("*");
-      let aQ = supabase.from("attendance").select("*").order("date", { ascending: true });
-      let fQ = supabase.from("finance").select("*").order("date", { ascending: true });
-      const pQ = supabase.from("prayer_requests").select("id", { count: "exact", head: true }).eq("status", "new");
-      if (branchFilter) { mQ = mQ.eq("branch_id", branchFilter); aQ = aQ.eq("branch_id", branchFilter); fQ = fQ.eq("branch_id", branchFilter); }
+   useEffect(() => {
+     const fetchAll = async () => {
+       const membersParams = branchFilter ? { branch_id: branchFilter } : undefined;
+       const attendanceParams = branchFilter ? { branch_id: branchFilter } : undefined;
+       const financeParams = branchFilter ? { branch_id: branchFilter } : undefined;
 
-      const [m, a, f, p, br] = await Promise.all([mQ, aQ, fQ, pQ, supabase.from("branches").select("id", { count: "exact", head: true })]);
-      const members = m.data || [];
-      const attendance = a.data || [];
-      const finance = f.data || [];
+       const [mRes, aRes, fRes, pRes, brRes] = await Promise.all([
+         apiService.getMembers(membersParams),
+         apiService.getAttendance(attendanceParams),
+         apiService.getFinance(financeParams),
+         apiService.getPrayerRequests({ status: "new", ...(branchFilter ? { branch_id: branchFilter } : {}) }),
+         apiService.getBranches()
+       ]);
 
-      setData({
-        members: members.length,
-        avgAttendance: attendance.length > 0 ? Math.round(attendance.reduce((s, r) => s + r.count, 0) / attendance.length) : 0,
-        totalGiving: finance.reduce((s, r) => s + Number(r.amount), 0),
-        pendingPrayers: p.count || 0,
-        branches: br.count || 0,
-      });
+       const members = mRes.data?.results || mRes.data || [];
+       const attendance = aRes.data?.results || aRes.data || [];
+       const finance = fRes.data?.results || fRes.data || [];
 
-      // Gender distribution
-      const genderMap: Record<string, number> = {};
-      members.forEach(m => { const g = m.gender || "Unknown"; genderMap[g] = (genderMap[g] || 0) + 1; });
-      setGenderData(Object.entries(genderMap).map(([name, value]) => ({ name, value })));
+       setData({
+         members: members.length,
+         avgAttendance: attendance.length > 0 ? Math.round(attendance.reduce((s: number, r: any) => s + r.count, 0) / attendance.length) : 0,
+         totalGiving: finance.reduce((s: number, r: any) => s + Number(r.amount), 0),
+         pendingPrayers: pRes.data?.count || 0,
+         branches: brRes.data?.results?.length || brRes.data?.length || 0,
+       });
 
-      // Category distribution
-      const catMap: Record<string, number> = {};
-      members.forEach(m => { const c = m.member_category || "Adult"; catMap[c] = (catMap[c] || 0) + 1; });
-      setCategoryData(Object.entries(catMap).map(([name, value]) => ({ name, value })));
+       // Gender distribution
+       const genderMap: Record<string, number> = {};
+       members.forEach((m: any) => { const g = m.gender || "Unknown"; genderMap[g] = (genderMap[g] || 0) + 1; });
+       setGenderData(Object.entries(genderMap).map(([name, value]) => ({ name, value })));
 
-      // Finance by month
-      const fMonthMap: Record<string, number> = {};
-      finance.forEach(f => {
-        const month = f.date.substring(0, 7);
-        fMonthMap[month] = (fMonthMap[month] || 0) + Number(f.amount);
-      });
-      setFinanceData(Object.entries(fMonthMap).slice(-12).map(([month, amount]) => ({ month, amount })));
+       // Category distribution
+       const catMap: Record<string, number> = {};
+       members.forEach((m: any) => { const c = m.member_category || "Adult"; catMap[c] = (catMap[c] || 0) + 1; });
+       setCategoryData(Object.entries(catMap).map(([name, value]) => ({ name, value })));
 
-      // Attendance trend
-      const aMonthMap: Record<string, { total: number; count: number }> = {};
-      attendance.forEach(a => {
-        const month = a.date.substring(0, 7);
-        if (!aMonthMap[month]) aMonthMap[month] = { total: 0, count: 0 };
-        aMonthMap[month].total += a.count;
-        aMonthMap[month].count += 1;
-      });
-      setAttendanceData(Object.entries(aMonthMap).slice(-12).map(([month, d]) => ({ month, avg: Math.round(d.total / d.count) })));
-    };
-    fetchAll();
-  }, [selectedBranch, userBranch]);
+       // Finance by month
+       const fMonthMap: Record<string, number> = {};
+       finance.forEach((f: any) => {
+         const month = f.date.substring(0, 7);
+         fMonthMap[month] = (fMonthMap[month] || 0) + Number(f.amount);
+       });
+       setFinanceData(Object.entries(fMonthMap).slice(-12).map(([month, amount]) => ({ month, amount })));
+
+       // Attendance trend
+       const aMonthMap: Record<string, { total: number; count: number }> = {};
+       attendance.forEach((a: any) => {
+         const month = a.date.substring(0, 7);
+         if (!aMonthMap[month]) aMonthMap[month] = { total: 0, count: 0 };
+         aMonthMap[month].total += a.count;
+         aMonthMap[month].count += 1;
+       });
+       setAttendanceData(Object.entries(aMonthMap).slice(-12).map(([month, d]) => ({ month, avg: Math.round(d.total / d.count) })));
+     };
+     fetchAll();
+   }, [selectedBranch, userBranch]);
 
   const stats = [
     ...(isSuperAdmin ? [{ title: "Total Branches", value: data.branches.toString(), icon: Building2, desc: "All locations" }] : []),

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import {
   Card,
@@ -70,76 +70,57 @@ const AnalyticsEnhanced = () => {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(branchId || "");
   const [selectedMetric, setSelectedMetric] = useState("growth");
 
-  // Fetch branches
-  const { data: branches = [] } = useQuery({
-    queryKey: ["branches"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("branches")
-        .select("id, branch_name, location")
-        .order("branch_name");
-      if (error) throw error;
-      return data as Branch[];
-    },
-  });
+   // Fetch branches
+   const { data: branches = [] } = useQuery({
+     queryKey: ["branches"],
+     queryFn: async () => {
+       const response = await apiService.getBranches();
+       return (response.data?.results || response.data || []) as Branch[];
+     },
+   });
 
-  // Fetch members
-  const { data: members = [] } = useQuery({
-    queryKey: ["members"],
-    queryFn: async () => {
-      let query = supabase.from("members").select("id, branch_id");
-      if (!isSuperAdmin && selectedBranch) {
-        query = query.eq("branch_id", selectedBranch);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Member[];
-    },
-  });
+   // Fetch members
+   const { data: members = [] } = useQuery({
+     queryKey: ["members"],
+     queryFn: async () => {
+       const params: any = {};
+       if (!isSuperAdmin && selectedBranch) {
+         params.branch_id = selectedBranch;
+       }
+       const response = await apiService.getMembers(params);
+       return (response.data?.results || response.data || []) as Member[];
+     },
+   });
 
-  // Fetch attendance data
-  const { data: attendanceData = [] } = useQuery({
-    queryKey: ["attendance", selectedBranch],
-    queryFn: async () => {
-      let query = supabase
-        .from("attendance")
-        .select("*")
-        .order("date", { ascending: true })
-        .limit(30);
+   // Fetch attendance data
+   const { data: attendanceData = [] } = useQuery({
+     queryKey: ["attendance", selectedBranch],
+     queryFn: async () => {
+       const params: any = {};
+       if (!isSuperAdmin && selectedBranch) {
+         params.branch_id = selectedBranch;
+       } else if (isSuperAdmin && selectedBranch) {
+         params.branch_id = selectedBranch;
+       }
+       const response = await apiService.getAttendance(params);
+       return (response.data?.results || response.data || []) as Attendance[];
+     },
+   });
 
-      if (!isSuperAdmin && selectedBranch) {
-        query = query.eq("branch_id", selectedBranch);
-      } else if (isSuperAdmin && selectedBranch) {
-        query = query.eq("branch_id", selectedBranch);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Attendance[];
-    },
-  });
-
-  // Fetch finance data
-  const { data: financeData = [] } = useQuery({
-    queryKey: ["finance", selectedBranch],
-    queryFn: async () => {
-      let query = supabase
-        .from("finance")
-        .select("*")
-        .order("date", { ascending: true })
-        .limit(30);
-
-      if (!isSuperAdmin && selectedBranch) {
-        query = query.eq("branch_id", selectedBranch);
-      } else if (isSuperAdmin && selectedBranch) {
-        query = query.eq("branch_id", selectedBranch);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Finance[];
-    },
-  });
+   // Fetch finance data
+   const { data: financeData = [] } = useQuery({
+     queryKey: ["finance", selectedBranch],
+     queryFn: async () => {
+       const params: any = {};
+       if (!isSuperAdmin && selectedBranch) {
+         params.branch_id = selectedBranch;
+       } else if (isSuperAdmin && selectedBranch) {
+         params.branch_id = selectedBranch;
+       }
+       const response = await apiService.getFinance(params);
+       return (response.data?.results || response.data || []) as Finance[];
+     },
+   });
 
   // Calculate statistics
   const membersByBranch: { [key: string]: number } = {};

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import {
   Card,
@@ -64,51 +64,43 @@ const MemberProfiles = () => {
   const [selectedMember, setSelectedMember] = useState<MemberProfile | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch members
-  const { data: members = [], isLoading } = useQuery({
-    queryKey: ["members", branchId],
-    queryFn: async () => {
-      let query = supabase
-        .from("members")
-        .select("*")
-        .order("name");
+   // Fetch members
+   const { data: members = [], isLoading } = useQuery({
+     queryKey: ["members", branchId],
+     queryFn: async () => {
+       const params: any = {};
+       if (!isSuperAdmin && branchId) {
+         params.branch_id = branchId;
+       }
+       const response = await apiService.getMembers(params);
+       return (response.data?.results || response.data || []) as MemberProfile[];
+     },
+   });
 
-      if (!isSuperAdmin && branchId) {
-        query = query.eq("branch_id", branchId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as MemberProfile[];
-    },
-  });
-
-  // Update member mutation
-  const updateMemberMutation = useMutation({
-    mutationFn: async (member: Partial<MemberProfile>) => {
-      const { error } = await supabase
-        .from("members")
-        .update(member)
-        .eq("id", member.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members", branchId] });
-      setIsDialogOpen(false);
-      setSelectedMember(null);
-      toast({
-        title: "Success",
-        description: "Member profile updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update member profile",
-        variant: "destructive",
-      });
-    },
-  });
+   // Update member mutation
+   const updateMemberMutation = useMutation({
+     mutationFn: async (member: Partial<MemberProfile>) => {
+       if (!member.id) throw new Error("Member ID required");
+       const { error } = await apiService.updateMember(member.id, member);
+       if (error) throw new Error(error);
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ["members", branchId] });
+       setIsDialogOpen(false);
+       setSelectedMember(null);
+       toast({
+         title: "Success",
+         description: "Member profile updated successfully",
+       });
+     },
+     onError: (error) => {
+       toast({
+         title: "Error",
+         description: "Failed to update member profile",
+         variant: "destructive",
+       });
+     },
+   });
 
   const filteredMembers = members.filter((member) =>
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

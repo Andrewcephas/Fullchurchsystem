@@ -15,36 +15,29 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-   useEffect(() => {
-     const fetch = async () => {
-       const response = await apiService.getSiteSettings();
-       if (response.data) {
-         const merged = { ...siteSettingsDefaults };
-         Object.assign(merged, response.data);
-         setSettings(merged);
-       }
-       setLoading(false);
-     };
-     fetch();
-   }, []);
+    useEffect(() => {
+      const fetch = async () => {
+        const response = await apiService.getSiteSettings();
+        if (response.data) {
+          const merged = { ...siteSettingsDefaults };
+          Object.assign(merged, response.data);
+          setSettings(merged);
+        }
+        setLoading(false);
+      };
+      fetch();
+    }, []);
 
-  const saveSetting = async (key: string, value: any) => {
-    const { error } = await supabase
-      .from("site_settings")
-      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
-    return error;
-  };
-
-   const handleSaveAll = async () => {
-     setSaving(true);
-     const response = await apiService.bulkUpdateSiteSettings(settings as Record<string, any>);
-     setSaving(false);
-     if (response.error) {
-       toast({ title: "Error saving settings", variant: "destructive" });
-     } else {
-       toast({ title: "All settings saved successfully!" });
-     }
-   };
+    const handleSaveAll = async () => {
+      setSaving(true);
+      const response = await apiService.bulkUpdateSiteSettings(settings as Record<string, any>);
+      setSaving(false);
+      if (response.error) {
+        toast({ title: "Error saving settings", variant: "destructive" });
+      } else {
+        toast({ title: "All settings saved successfully!" });
+      }
+    };
 
   const addService = () => {
     setSettings({

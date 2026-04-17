@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import {
   Card,
@@ -75,58 +75,46 @@ const FinanceReports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  // Fetch branches
-  const { data: branches = [] } = useQuery({
-    queryKey: ["branches"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("branches")
-        .select("id, branch_name, location")
-        .order("branch_name");
-      if (error) throw error;
-      return data as Branch[];
-    },
-  });
+   // Fetch branches
+   const { data: branches = [] } = useQuery({
+     queryKey: ["branches"],
+     queryFn: async () => {
+       const response = await apiService.getBranches();
+       return (response.data?.results || response.data || []) as Branch[];
+     },
+   });
 
-  // Fetch finance data
-  const { data: financeData = [] } = useQuery({
-    queryKey: ["finance", selectedBranch, selectedPeriod],
-    queryFn: async () => {
-      let query = supabase
-        .from("finance")
-        .select("*")
-        .order("date", { ascending: false });
+   // Fetch finance data
+   const { data: financeData = [] } = useQuery({
+     queryKey: ["finance", selectedBranch, selectedPeriod],
+     queryFn: async () => {
+       const params: any = {};
+       if (!isSuperAdmin && selectedBranch) {
+         params.branch_id = selectedBranch;
+       } else if (isSuperAdmin && selectedBranch) {
+         params.branch_id = selectedBranch;
+       }
 
-      if (!isSuperAdmin && selectedBranch) {
-        query = query.eq("branch_id", selectedBranch);
-      } else if (isSuperAdmin && selectedBranch) {
-        query = query.eq("branch_id", selectedBranch);
-      }
+       const response = await apiService.getFinance(params);
+       let data = (response.data?.results || response.data || []) as FinanceData[];
 
-      const { data, error } = await query;
-      if (error) throw error;
+       // Filter by date range
+       const now = new Date();
+       if (selectedPeriod === "week") {
+         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+         data = data.filter(item => new Date(item.date) >= weekAgo);
+       } else if (selectedPeriod === "month") {
+         const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+         data = data.filter(item => new Date(item.date) >= monthAgo);
+       } else if (selectedPeriod === "year") {
+         const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+         data = data.filter(item => new Date(item.date) >= yearAgo);
+       }
 
-      // Filter by date range
-      const now = new Date();
-      const filtered = (data as FinanceData[]).filter((item) => {
-        const itemDate = new Date(item.date);
-        if (selectedPeriod === "week") {
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return itemDate >= weekAgo;
-        } else if (selectedPeriod === "month") {
-          const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-          return itemDate >= monthAgo;
-        } else if (selectedPeriod === "year") {
-          const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-          return itemDate >= yearAgo;
-        }
-        return true;
-      });
-
-      return filtered;
-    },
-    enabled: !(!isSuperAdmin && !selectedBranch),
-  });
+       return data;
+     },
+     enabled: !(!isSuperAdmin && !selectedBranch),
+   });
 
   // Calculate summary statistics
   const totalGiving = financeData.reduce((sum, item) => sum + item.amount, 0);

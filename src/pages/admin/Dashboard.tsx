@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, DollarSign, Calendar, ClipboardCheck, Heart, TrendingUp, Building2, Cake, GraduationCap, Bell, LogIn } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import BranchSelector from "@/components/admin/BranchSelector";
 
@@ -17,68 +17,77 @@ const Dashboard = () => {
 
   const branchFilter = isSuperAdmin ? (selectedBranch === "all" ? null : selectedBranch) : userBranch;
 
-  useEffect(() => {
-    if (roleLoading) return;
-    const fetchStats = async () => {
-      let mQ = supabase.from("members").select("id", { count: "exact", head: true });
-      let aQ = supabase.from("attendance").select("count").order("date", { ascending: false }).limit(5);
-      let fQ = supabase.from("finance").select("amount");
-      let eQ = supabase.from("events").select("id", { count: "exact", head: true });
-      const pQ = supabase.from("prayer_requests").select("id", { count: "exact", head: true }).eq("status", "new");
+   useEffect(() => {
+     if (roleLoading) return;
+     const fetchStats = async () => {
+       const membersParams = branchFilter ? { branch_id: branchFilter } : undefined;
+       const attendanceParams = branchFilter ? { branch_id: branchFilter } : undefined;
+       const financeParams = branchFilter ? { branch_id: branchFilter } : undefined;
+       const eventsParams = branchFilter ? { branch_id: branchFilter } : undefined;
 
-      if (branchFilter) {
-        mQ = mQ.eq("branch_id", branchFilter);
-        aQ = aQ.eq("branch_id", branchFilter);
-        fQ = fQ.eq("branch_id", branchFilter);
-        eQ = eQ.eq("branch_id", branchFilter);
-      }
+       const [mRes, aRes, fRes, eRes, pRes, brRes] = await Promise.all([
+         apiService.getMembers(membersParams),
+         apiService.getAttendance(attendanceParams),
+         apiService.getFinance(financeParams),
+         apiService.getEvents(eventsParams),
+         apiService.getPrayerRequests({ status: "new", ...(branchFilter ? { branch_id: branchFilter } : {}) }),
+         apiService.getBranches()
+       ]);
 
-      const [m, a, f, e, p, br] = await Promise.all([mQ, aQ, fQ, eQ, pQ,
-        supabase.from("branches").select("id", { count: "exact", head: true })]);
+       const members = mRes.data?.results || mRes.data || [];
+       const attendance = aRes.data?.results || aRes.data || [];
+       const finance = fRes.data?.results || fRes.data || [];
+       const events = eRes.data?.results || eRes.data || [];
 
-      const totalFinance = (f.data || []).reduce((sum, r) => sum + Number(r.amount), 0);
-      const avgAttendance = (a.data || []).length > 0 ? Math.round((a.data || []).reduce((sum, r) => sum + r.count, 0) / (a.data || []).length) : 0;
-      setStats({ members: m.count || 0, attendance: avgAttendance, finance: totalFinance, events: e.count || 0, prayers: p.count || 0, branches: br.count || 0 });
-    };
+       const totalFinance = finance.reduce((sum: number, r: any) => sum + Number(r.amount), 0);
+       const avgAttendance = attendance.length > 0 ? Math.round(attendance.reduce((sum: number, r: any) => sum + r.count, 0) / attendance.length) : 0;
+       setStats({ 
+         members: members.length, 
+         attendance: avgAttendance, 
+         finance: totalFinance, 
+         events: events.length, 
+         prayers: pRes.data?.count || pRes.data?.results?.length || 0, 
+         branches: brRes.data?.results?.length || brRes.data?.length || 0 
+       });
+     };
 
-    const fetchBirthdays = async () => {
-      let q = supabase.from("members").select("id, name, date_of_birth, branch_id").not("date_of_birth", "is", null);
-      if (branchFilter) q = q.eq("branch_id", branchFilter);
-      const { data } = await q;
-      if (!data) return;
+     const fetchBirthdays = async () => {
+       const params = branchFilter ? { branch_id: branchFilter } : undefined;
+       const response = await apiService.getMembers(params);
+       const data = response.data?.results || response.data || [];
+       
+       const today = new Date();
+       const todayMD = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-      const today = new Date();
-      const todayMD = `${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+       setBirthdays(data.filter((m: any) => {
+         if (!m.date_of_birth) return false;
+         const d = new Date(m.date_of_birth);
+         return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` === todayMD;
+       }));
 
-      setBirthdays(data.filter(m => {
-        if (!m.date_of_birth) return false;
-        const d = new Date(m.date_of_birth);
-        return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` === todayMD;
-      }));
+       setUpcomingBirthdays(data.filter((m: any) => {
+         if (!m.date_of_birth) return false;
+         const d = new Date(m.date_of_birth);
+         const bday = new Date(today.getFullYear(), d.getMonth(), d.getDate());
+         if (bday < today) bday.setFullYear(bday.getFullYear() + 1);
+         const diff = (bday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+         return diff > 0 && diff <= 7;
+       }));
+     };
 
-      setUpcomingBirthdays(data.filter(m => {
-        if (!m.date_of_birth) return false;
-        const d = new Date(m.date_of_birth);
-        const bday = new Date(today.getFullYear(), d.getMonth(), d.getDate());
-        if (bday < today) bday.setFullYear(bday.getFullYear() + 1);
-        const diff = (bday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-        return diff > 0 && diff <= 7;
-      }));
-    };
+     const fetchExtras = async () => {
+       if (isSuperAdmin) {
+         const loginsResponse = await apiService.getLoginActivity({ limit: 5 });
+         setRecentLogins(loginsResponse.data?.results || loginsResponse.data || []);
+       }
+       const noticesResponse = await apiService.getNotices(branchFilter ? { branch_id: branchFilter } : { limit: 3 });
+       setNotices(noticesResponse.data?.results || noticesResponse.data || []);
+     };
 
-    const fetchExtras = async () => {
-      if (isSuperAdmin) {
-        const { data: logins } = await supabase.from("login_activity").select("*").order("login_at", { ascending: false }).limit(5);
-        if (logins) setRecentLogins(logins);
-      }
-      const { data: n } = await supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(3);
-      if (n) setNotices(n);
-    };
-
-    fetchStats();
-    fetchBirthdays();
-    fetchExtras();
-  }, [branchFilter, roleLoading]);
+     fetchStats();
+     fetchBirthdays();
+     fetchExtras();
+   }, [branchFilter, roleLoading]);
 
   const cards = [
     ...(isSuperAdmin ? [{ title: "Total Branches", value: stats.branches.toString(), icon: Building2, desc: "All locations" }] : []),
