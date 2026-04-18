@@ -7,9 +7,9 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from api.models import (
     Branch, Member, UserRole, Attendance, AttendanceMember, Finance, Event,
-    Sermon, SundaySchool, Notice, PrayerRequest, Communication, MemberTransfer,
-    NotificationPreference, NotificationSent, BackupLog, DataAccessLog,
-    PrivateMessage, SiteSettings, SocialQuote
+    Sermon, SundaySchool, SundaySchoolMember, SundaySchoolAttendance, Notice, PrayerRequest,
+    Communication, MemberTransfer, NotificationPreference, NotificationSent,
+    BackupLog, DataAccessLog, PrivateMessage, SiteSettings, SocialQuote, LoginActivity
 )
 
 
@@ -50,7 +50,15 @@ class BranchSerializer(serializers.ModelSerializer):
 
 class MemberSerializer(serializers.ModelSerializer):
     """Member serializer with all profile details"""
+    branch = serializers.PrimaryKeyRelatedField(read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     
     class Meta:
         model = Member
@@ -81,7 +89,13 @@ class AttendanceMemberSerializer(serializers.ModelSerializer):
 
 class AttendanceSerializer(serializers.ModelSerializer):
     """Attendance serializer"""
+    branch = serializers.PrimaryKeyRelatedField(read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True
+    )
     members = AttendanceMemberSerializer(many=True, read_only=True, source='members.all')
     
     class Meta:
@@ -92,7 +106,13 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
 class FinanceSerializer(serializers.ModelSerializer):
     """Finance serializer"""
+    branch = serializers.PrimaryKeyRelatedField(read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True
+    )
     approved_by_email = serializers.CharField(source='approved_by.email', read_only=True)
     
     class Meta:
@@ -103,8 +123,15 @@ class FinanceSerializer(serializers.ModelSerializer):
 
 class EventSerializer(serializers.ModelSerializer):
     """Event serializer"""
+    branch = serializers.PrimaryKeyRelatedField(read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True
+    )
     created_by_email = serializers.CharField(source='created_by.email', read_only=True)
+    date = serializers.DateTimeField(source='event_date', read_only=True)
     
     class Meta:
         model = Event
@@ -114,7 +141,13 @@ class EventSerializer(serializers.ModelSerializer):
 
 class SermonSerializer(serializers.ModelSerializer):
     """Sermon serializer"""
+    branch = serializers.PrimaryKeyRelatedField(read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True
+    )
     
     class Meta:
         model = Sermon
@@ -124,8 +157,14 @@ class SermonSerializer(serializers.ModelSerializer):
 
 class SundaySchoolSerializer(serializers.ModelSerializer):
     """Sunday School serializer"""
+    branch = serializers.PrimaryKeyRelatedField(read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
-    teacher_name = serializers.CharField(source='class_teacher.first_name', read_only=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True
+    )
+    teacher_name = serializers.CharField(source='class_teacher.get_full_name', read_only=True)
     
     class Meta:
         model = SundaySchool
@@ -133,9 +172,39 @@ class SundaySchoolSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
+class SundaySchoolMemberSerializer(serializers.ModelSerializer):
+    """Sunday School enrollment serializer"""
+    class_name = serializers.CharField(source='sunday_school_class.class_name', read_only=True)
+    member_name = serializers.CharField(source='member.name', read_only=True)
+    member_id = serializers.UUIDField(source='member.id', read_only=True)
+    
+    class Meta:
+        model = SundaySchoolMember
+        fields = '__all__'
+        read_only_fields = ['id', 'enrolled_at']
+
+
+class SundaySchoolAttendanceSerializer(serializers.ModelSerializer):
+    """Sunday School attendance serializer"""
+    class_name = serializers.CharField(source='sunday_school_class.class_name', read_only=True)
+    created_by_email = serializers.CharField(source='created_by.email', read_only=True)
+    
+    class Meta:
+        model = SundaySchoolAttendance
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at']
+
+
 class NoticeSerializer(serializers.ModelSerializer):
     """Notice serializer"""
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True, allow_null=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     created_by_email = serializers.CharField(source='created_by.email', read_only=True)
     
     class Meta:
@@ -147,6 +216,11 @@ class NoticeSerializer(serializers.ModelSerializer):
 class PrayerRequestSerializer(serializers.ModelSerializer):
     """Prayer request serializer"""
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True
+    )
     
     class Meta:
         model = PrayerRequest
@@ -156,37 +230,23 @@ class PrayerRequestSerializer(serializers.ModelSerializer):
 
 class CommunicationSerializer(serializers.ModelSerializer):
     """Communication serializer"""
+    branch = serializers.PrimaryKeyRelatedField(read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
+    branch_id = serializers.PrimaryKeyRelatedField(
+        source='branch',
+        queryset=Branch.objects.all(),
+        write_only=True
+    )
     created_by_email = serializers.CharField(source='created_by.email', read_only=True)
     
     class Meta:
         model = Communication
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class MemberTransferSerializer(serializers.ModelSerializer):
-    """Member transfer serializer"""
-    member_name = serializers.CharField(source='member.name', read_only=True)
-    from_branch_name = serializers.CharField(source='from_branch.branch_name', read_only=True)
-    to_branch_name = serializers.CharField(source='to_branch.branch_name', read_only=True)
-    approved_by_email = serializers.CharField(source='approved_by.email', read_only=True)
-    
-    class Meta:
-        model = MemberTransfer
-        fields = '__all__'
-        read_only_fields = ['id', 'transfer_date', 'created_at', 'updated_at']
-
-
-class NotificationPreferenceSerializer(serializers.ModelSerializer):
-    """Notification preference serializer"""
-    user_email = serializers.CharField(source='user.email', read_only=True)
-    branch_name = serializers.CharField(source='branch.branch_name', read_only=True)
-    
-    class Meta:
-        model = NotificationPreference
-        fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'title', 'created_by']
+        extra_kwargs = {
+            'title': {'required': False},
+            'message': {'required': True}
+        }
 
 
 class NotificationSentSerializer(serializers.ModelSerializer):
@@ -224,11 +284,27 @@ class PrivateMessageSerializer(serializers.ModelSerializer):
     """Private message serializer"""
     sender_email = serializers.CharField(source='sender.email', read_only=True)
     receiver_email = serializers.CharField(source='receiver.email', read_only=True)
+    receiver_id = serializers.PrimaryKeyRelatedField(
+        source='receiver',
+        queryset=User.objects.all(),
+        write_only=True
+    )
     
     class Meta:
         model = PrivateMessage
         fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'sender']
+        extra_kwargs = {
+            'subject': {'required': False},
+            'message': {'required': True}
+        }
+    
+    def create(self, validated_data):
+        # Auto-generate subject from message if not provided
+        message = validated_data.get('message', '')
+        if 'subject' not in validated_data or not validated_data.get('subject'):
+            validated_data['subject'] = message[:50] + ('...' if len(message) > 50 else '')
+        return super().create(validated_data)
 
 
 class SiteSettingsSerializer(serializers.ModelSerializer):
@@ -245,3 +321,34 @@ class SocialQuoteSerializer(serializers.ModelSerializer):
         model = SocialQuote
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'usage_count']
+
+
+class LoginActivitySerializer(serializers.ModelSerializer):
+    """Login activity serializer"""
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    
+    class Meta:
+        model = LoginActivity
+        fields = '__all__'
+        read_only_fields = ['id', 'login_at']
+
+
+class MemberTransferSerializer(serializers.ModelSerializer):
+    """Member transfer serializer"""
+    from_branch_name = serializers.CharField(source='from_branch.branch_name', read_only=True)
+    to_branch_name = serializers.CharField(source='to_branch.branch_name', read_only=True)
+    member_name = serializers.CharField(source='member.name', read_only=True)
+    approved_by_email = serializers.CharField(source='approved_by.email', read_only=True)
+    
+    class Meta:
+        model = MemberTransfer
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at', 'approved_by']
+
+
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+    """Notification preference serializer"""
+    class Meta:
+        model = NotificationPreference
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']

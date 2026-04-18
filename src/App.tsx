@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -18,6 +19,8 @@ import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import AdminLayout from "@/components/admin/AdminLayout";
 import Dashboard from "@/pages/admin/Dashboard";
+
+const queryClient = new QueryClient();
 import Members from "@/pages/admin/Members";
 import Attendance from "@/pages/admin/Attendance";
 import Finance from "@/pages/admin/Finance";
@@ -43,6 +46,7 @@ import BackupAndSecurity from "@/pages/admin/BackupAndSecurity";
 
 function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <Router>
         <Routes>
@@ -90,6 +94,7 @@ function App() {
       <Toaster />
     </Router>
     </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -7,7 +7,6 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db.models import Q, Sum, Count
@@ -16,9 +15,9 @@ from io import StringIO
 
 from api.models import (
     Branch, Member, UserRole, Attendance, AttendanceMember, Finance, Event,
-    Sermon, SundaySchool, Notice, PrayerRequest, Communication, MemberTransfer,
-    NotificationPreference, NotificationSent, BackupLog, DataAccessLog,
-    PrivateMessage, SiteSettings, SocialQuote
+    Sermon, SundaySchool, SundaySchoolMember, SundaySchoolAttendance, Notice, PrayerRequest,
+    Communication, MemberTransfer, NotificationPreference, NotificationSent,
+    BackupLog, DataAccessLog, PrivateMessage, SiteSettings, SocialQuote, LoginActivity
 )
 from api.serializers import (
     BranchSerializer, MemberSerializer, UserRoleSerializer, AttendanceSerializer,
@@ -26,7 +25,8 @@ from api.serializers import (
     SundaySchoolSerializer, NoticeSerializer, PrayerRequestSerializer,
     CommunicationSerializer, MemberTransferSerializer, NotificationPreferenceSerializer,
     NotificationSentSerializer, BackupLogSerializer, DataAccessLogSerializer,
-    PrivateMessageSerializer, SiteSettingsSerializer, UserSerializer, SocialQuoteSerializer
+    PrivateMessageSerializer, SiteSettingsSerializer, UserSerializer, SocialQuoteSerializer,
+    LoginActivitySerializer
 )
 
 
@@ -75,8 +75,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['branch', 'member_category', 'membership_status', 'department']
+    filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name', 'email', 'phone']
     ordering_fields = ['name', 'join_date', 'created_at']
     ordering = ['name']
@@ -119,8 +118,8 @@ class UserRoleViewSet(viewsets.ModelViewSet):
     queryset = UserRole.objects.all()
     serializer_class = UserRoleSerializer
     permission_classes = [IsSuperAdmin]
-    filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['role', 'branch']
+    filter_backends = [ SearchFilter]
+    # filterset_fields = ['role', 'branch']
     search_fields = ['user__email', 'user__first_name']
 
 
@@ -129,8 +128,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     queryset = Attendance.objects.all()
     serializer_class = AttendanceSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['branch', 'service_type', 'service_date']
+    filter_backends = [ OrderingFilter]
+    # filterset_fields = ['branch', 'service_type', 'service_date']
     ordering_fields = ['service_date']
     ordering = ['-service_date']
 
@@ -180,8 +179,8 @@ class FinanceViewSet(viewsets.ModelViewSet):
     queryset = Finance.objects.all()
     serializer_class = FinanceSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['branch', 'category', 'approval_status', 'date']
+    filter_backends = [ OrderingFilter]
+    # filterset_fields = ['branch', 'category', 'approval_status', 'date']
     ordering_fields = ['date', 'amount']
     ordering = ['-date']
 
@@ -252,8 +251,8 @@ class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['branch', 'is_conference']
+    filter_backends = [ SearchFilter, OrderingFilter]
+    # filterset_fields = ['branch', 'is_conference']
     search_fields = ['title', 'description']
     ordering_fields = ['event_date']
     ordering = ['-event_date']
@@ -278,8 +277,8 @@ class SermonViewSet(viewsets.ModelViewSet):
     queryset = Sermon.objects.all()
     serializer_class = SermonSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['branch', 'speaker']
+    filter_backends = [ SearchFilter, OrderingFilter]
+    # filterset_fields = ['branch', 'speaker']
     search_fields = ['title', 'description']
     ordering_fields = ['sermon_date']
     ordering = ['-sermon_date']
@@ -304,8 +303,8 @@ class NoticeViewSet(viewsets.ModelViewSet):
     queryset = Notice.objects.all()
     serializer_class = NoticeSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['is_global']
+    filter_backends = [ SearchFilter, OrderingFilter]
+    # filterset_fields = ['is_global']
     search_fields = ['title', 'content']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
@@ -332,8 +331,8 @@ class PrayerRequestViewSet(viewsets.ModelViewSet):
     queryset = PrayerRequest.objects.all()
     serializer_class = PrayerRequestSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['status']
+    filter_backends = [ OrderingFilter]
+    # filterset_fields = ['status']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
 
@@ -357,8 +356,8 @@ class MemberTransferViewSet(viewsets.ModelViewSet):
     queryset = MemberTransfer.objects.all()
     serializer_class = MemberTransferSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['status']
+    filter_backends = [ OrderingFilter]
+    # filterset_fields = ['status']
     ordering_fields = ['transfer_date']
     ordering = ['-transfer_date']
 
@@ -461,8 +460,8 @@ class BackupLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = BackupLog.objects.all()
     serializer_class = BackupLogSerializer
     permission_classes = [IsSuperAdmin]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['status', 'backup_type']
+    filter_backends = [ OrderingFilter]
+    # filterset_fields = ['status', 'backup_type']
     ordering_fields = ['started_at']
     ordering = ['-started_at']
 
@@ -491,8 +490,8 @@ class DataAccessLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DataAccessLog.objects.all()
     serializer_class = DataAccessLogSerializer
     permission_classes = [IsSuperAdmin]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['operation', 'table_name', 'user']
+    filter_backends = [ OrderingFilter]
+    # filterset_fields = ['operation', 'table_name', 'user']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
 
@@ -502,8 +501,8 @@ class SocialQuoteViewSet(viewsets.ModelViewSet):
     queryset = SocialQuote.objects.filter(is_active=True)
     serializer_class = SocialQuoteSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['theme', 'is_active']
+    filter_backends = [ SearchFilter, OrderingFilter]
+    # filterset_fields = ['theme', 'is_active']
     search_fields = ['quote_text', 'author', 'reference']
     ordering_fields = ['usage_count', 'created_at']
     ordering = ['-usage_count']
@@ -557,6 +556,276 @@ class SocialQuoteViewSet(viewsets.ModelViewSet):
             {'value': choice[0], 'label': choice[1]}
             for choice in SocialQuote.THEME_CHOICES
         ])
+
+
+class CommunicationViewSet(viewsets.ModelViewSet):
+    """Branch communications / announcements"""
+    queryset = Communication.objects.all()
+    serializer_class = CommunicationSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [ OrderingFilter]
+    # filterset_fields = ['branch']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        """Filter communications by user's branch if not super admin"""
+        user = self.request.user
+        if not user.is_authenticated:
+            return Communication.objects.none()
+        try:
+            if user.role.role == 'super_admin':
+                return Communication.objects.all()
+            else:
+                return Communication.objects.filter(branch=user.role.branch)
+        except:
+            return Communication.objects.none()
+
+    def perform_create(self, serializer):
+        # Auto-generate title from message if not provided
+        message = serializer.validated_data.get('message', '')
+        title = message[:50] + ('...' if len(message) > 50 else '')
+        serializer.save(
+            created_by=self.request.user,
+            title=title or 'Announcement'
+        )
+
+
+class PrivateMessageViewSet(viewsets.ModelViewSet):
+    """Private messages between users"""
+    serializer_class = PrivateMessageSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [ OrderingFilter]
+    # filterset_fields = ['sender', 'receiver', 'is_read']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        """Return messages where user is sender OR receiver"""
+        user = self.request.user
+        if not user.is_authenticated:
+            return PrivateMessage.objects.none()
+        return PrivateMessage.objects.filter(
+            Q(sender=user) | Q(receiver=user)
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
+
+
+class SiteSettingsViewSet(viewsets.ModelViewSet):
+    """Global site settings (key-value store)"""
+    queryset = SiteSettings.objects.all()
+    serializer_class = SiteSettingsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Settings are global - any authenticated user can read"""
+        return SiteSettings.objects.all().order_by('key')
+
+    @action(detail=False, methods=['post'])
+    def bulk_update(self, request):
+        """Bulk update multiple settings (super admin only)"""
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'Only super admins can update site settings'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        settings_data = request.data
+        updated = []
+        for key, value in settings_data.items():
+            obj, created = SiteSettings.objects.update_or_create(
+                key=key,
+                defaults={'value': value}
+            )
+            updated.append(key)
+        
+        return Response({
+            'message': f'Updated {len(updated)} settings',
+            'updated_keys': updated
+        })
+
+
+class SundaySchoolViewSet(viewsets.ModelViewSet):
+    """Sunday School management with classes, members, and attendance"""
+    queryset = SundaySchool.objects.all()
+    serializer_class = SundaySchoolSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [ SearchFilter, OrderingFilter]
+    # filterset_fields = ['branch', 'class_teacher']
+    search_fields = ['class_name']
+    ordering_fields = ['class_name', 'created_at']
+    ordering = ['class_name']
+
+    def get_queryset(self):
+        """Filter classes by user's branch if not super admin"""
+        user = self.request.user
+        if not user.is_authenticated:
+            return SundaySchool.objects.none()
+        try:
+            if user.role.role == 'super_admin':
+                return SundaySchool.objects.all()
+            else:
+                return SundaySchool.objects.filter(branch=user.role.branch)
+        except:
+            return SundaySchool.objects.none()
+
+    @action(detail=False, methods=['get'])
+    def members(self, request):
+        """Get members for a specific class (or all classes for branch)"""
+        class_id = request.query_params.get('class_id')
+        branch_id = request.query_params.get('branch_id')
+        
+        queryset = SundaySchoolMember.objects.all()
+        
+        # Filter by branch
+        if branch_id:
+            queryset = queryset.filter(sunday_school_class__branch_id=branch_id)
+        elif class_id:
+            queryset = queryset.filter(sunday_school_class_id=class_id)
+        else:
+            # If no filter, restrict to user's branch
+            try:
+                if request.user.role.role == 'super_admin':
+                    pass  # show all
+                else:
+                    queryset = queryset.filter(sunday_school_class__branch=request.user.role.branch)
+            except:
+                return Response({'error': 'Unauthorized'}, status=401)
+        
+        serializer = SundaySchoolMemberSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def members(self, request):
+        """Enroll a member in a class"""
+        class_id = request.data.get('class_id')
+        member_id = request.data.get('member_id')
+        
+        if not class_id or not member_id:
+            return Response(
+                {'error': 'class_id and member_id required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            ss_class = SundaySchool.objects.get(id=class_id)
+            member = Member.objects.get(id=member_id)
+        except (SundaySchool.DoesNotExist, Member.DoesNotExist):
+            return Response({'error': 'Invalid class or member'}, status=404)
+        
+        # Check branch access
+        try:
+            if request.user.role.role != 'super_admin' and ss_class.branch != request.user.role.branch:
+                return Response({'error': 'Cannot assign across branches'}, status=403)
+        except:
+            return Response({'error': 'Unauthorized'}, status=401)
+        
+        enrollment, created = SundaySchoolMember.objects.get_or_create(
+            sunday_school_class=ss_class,
+            member=member
+        )
+        
+        if created:
+            # Update member count
+            ss_class.member_count = SundaySchoolMember.objects.filter(sunday_school_class=ss_class).count()
+            ss_class.save(update_fields=['member_count'])
+        
+        serializer = SundaySchoolMemberSerializer(enrollment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @action(detail=False, methods=['delete'])
+    def members(self, request):
+        """Remove a member from a class"""
+        class_id = request.query_params.get('class_id')
+        member_id = request.query_params.get('member_id')
+        
+        if not class_id or not member_id:
+            return Response(
+                {'error': 'class_id and member_id required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            enrollment = SundaySchoolMember.objects.get(
+                sunday_school_class_id=class_id,
+                member_id=member_id
+            )
+            ss_class = enrollment.sunday_school_class
+            enrollment.delete()
+            
+            # Update member count
+            ss_class.member_count = SundaySchoolMember.objects.filter(sunday_school_class=ss_class).count()
+            ss_class.save(update_fields=['member_count'])
+            
+            return Response({'message': 'Member removed'})
+        except SundaySchoolMember.DoesNotExist:
+            return Response({'error': 'Enrollment not found'}, status=404)
+
+    @action(detail=False, methods=['get'])
+    def attendance(self, request):
+        """Get attendance records for a class"""
+        class_id = request.query_params.get('class_id')
+        
+        queryset = SundaySchoolAttendance.objects.all()
+        
+        if class_id:
+            queryset = queryset.filter(sunday_school_class_id=class_id)
+        
+        # Branch filtering
+        try:
+            if request.user.role.role != 'super_admin':
+                queryset = queryset.filter(sunday_school_class__branch=request.user.role.branch)
+        except:
+            return Response({'error': 'Unauthorized'}, status=401)
+        
+        serializer = SundaySchoolAttendanceSerializer(queryset.order_by('-date'), many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def attendance(self, request):
+        """Create attendance record for a class"""
+        class_id = request.data.get('class_id')
+        date = request.data.get('date')
+        present_count = request.data.get('present_count')
+        notes = request.data.get('notes', '')
+        
+        if not class_id or not date or not present_count:
+            return Response(
+                {'error': 'class_id, date, and present_count required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            ss_class = SundaySchool.objects.get(id=class_id)
+        except SundaySchool.DoesNotExist:
+            return Response({'error': 'Invalid class'}, status=404)
+        
+        # Check branch access
+        try:
+            if request.user.role.role != 'super_admin' and ss_class.branch != request.user.role.branch:
+                return Response({'error': 'Cannot record attendance for other branches'}, status=403)
+        except:
+            return Response({'error': 'Unauthorized'}, status=401)
+        
+        record, created = SundaySchoolAttendance.objects.get_or_create(
+            sunday_school_class=ss_class,
+            date=date,
+            defaults={
+                'present_count': present_count,
+                'notes': notes,
+                'created_by': request.user
+            }
+        )
+        
+        if not created:
+            record.present_count = present_count
+            record.notes = notes
+            record.save()
+        
+        serializer = SundaySchoolAttendanceSerializer(record)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 class AnalyticsViewSet(viewsets.ViewSet):
@@ -653,6 +922,13 @@ class LoginView(APIView):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
+            # Track login activity
+            LoginActivity.objects.create(
+                user=user,
+                user_email=user.email,
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:500]
+            )
             serializer = UserSerializer(user)
             return Response({
                 'user': serializer.data,
@@ -663,6 +939,14 @@ class LoginView(APIView):
                 {'error': 'Invalid credentials'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -686,3 +970,126 @@ class UserView(APIView):
             {'error': 'Not authenticated'},
             status=status.HTTP_401_UNAUTHORIZED
         )
+
+
+class LoginActivityViewSet(viewsets.ReadOnlyModelViewSet):
+    """Login activity tracking - read only"""
+    queryset = LoginActivity.objects.all()
+    serializer_class = LoginActivitySerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [OrderingFilter]
+    ordering_fields = ['login_at']
+    ordering = ['-login_at']
+
+    def get_queryset(self):
+        """Filter by user role"""
+        user = self.request.user
+        try:
+            if user.role.role == 'super_admin':
+                return LoginActivity.objects.all()
+            else:
+                return LoginActivity.objects.filter(user=user)
+        except:
+            return LoginActivity.objects.filter(user=user)
+
+    def list(self, request):
+        limit = request.query_params.get('limit')
+        queryset = self.get_queryset()
+        if limit:
+            queryset = queryset[:int(limit)]
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class AdminUserViewSet(viewsets.ViewSet):
+    """Admin user management - for super admin to create/manage users"""
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['username', 'email']
+    ordering_fields = ['username', 'date_joined']
+    ordering = ['username']
+
+    def has_super_admin(self, request):
+        """Check if user is super admin"""
+        if not request.user.is_authenticated:
+            return False
+        try:
+            return request.user.role.role == 'super_admin' or request.user.is_superuser
+        except:
+            return request.user.is_superuser
+
+    def list(self, request):
+        """List all admin users"""
+        if not self.has_super_admin(request):
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        users = User.objects.filter(is_staff=True)
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+
+    def create(self, request):
+        """Create new admin user"""
+        if not self.has_super_admin(request):
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        username = request.data.get('username')
+        password = request.data.get('password')
+        email = request.data.get('email', '')
+        role = request.data.get('role', 'secretary')
+        branch_id = request.data.get('branch_id')
+
+        if not username or not password:
+            return Response(
+                {'error': 'Username and password required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if User.objects.filter(username=username).exists():
+            return Response(
+                {'error': 'Username already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            email=email,
+            is_staff=True,
+            is_superuser=(role == 'super_admin')
+        )
+
+        # Create user role
+        UserRole.objects.create(
+            user=user,
+            role=role,
+            branch_id=branch_id if branch_id else None
+        )
+
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def reset_password(self, request):
+        """Reset user password"""
+        if not self.has_super_admin(request):
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+        user_id = request.data.get('user_id')
+        new_password = request.data.get('new_password')
+
+        if not user_id or not new_password:
+            return Response(
+                {'error': 'user_id and new_password required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'message': 'Password reset successful'})

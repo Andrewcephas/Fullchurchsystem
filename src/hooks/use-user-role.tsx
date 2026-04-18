@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import apiService from "@/services/api";
 
 export type AppRole = "super_admin" | "branch_admin" | "secretary" | "member" | "sunday_school_teacher";
 
@@ -21,23 +22,41 @@ export const useUserRole = (): UserRole => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
+    const fetchUserRole = async () => {
+      if (authLoading) return;
 
-    if (user) {
-      // For now, assume admin users are super_admin
-      // In a full implementation, you'd have a UserRole model in Django
-      if (user.is_superuser) {
-        setRole("super_admin");
+      if (user) {
+        // Check Django User model directly for superuser status
+        if (user.is_superuser) {
+          setRole("super_admin");
+        } else if (user.is_staff) {
+          // Staff users can be branch admins or secretaries - need to check user role
+          try {
+            const response = await apiService.getUserRoles({ user_id: user.id });
+            if (response.data && response.data.length > 0) {
+              const userRole = response.data[0];
+              setRole(userRole.role as AppRole);
+              setBranchId(userRole.branch_id || null);
+            } else {
+              // Staff but no role assigned - treat as secretary
+              setRole("secretary");
+            }
+          } catch {
+            setRole("secretary");
+          }
+        } else {
+          // Regular user - check for member role
+          setRole("member");
+        }
       } else {
-        setRole("member"); // Default role
+        setRole(null);
+        setBranchId(null);
       }
-      setBranchId(null); // TODO: Add branch support
-    } else {
-      setRole(null);
-      setBranchId(null);
-    }
 
-    setLoading(false);
+      setLoading(false);
+    };
+
+    fetchUserRole();
   }, [user, authLoading]);
 
   return {

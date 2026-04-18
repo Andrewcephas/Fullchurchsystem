@@ -215,26 +215,26 @@ class ApiService {
     return this.get('/login-activity/', filters);
   }
 
-  // Sunday School Classes
-  async getSundaySchoolClasses(filters?: Record<string, any>) {
-    return this.get('/sunday-school/classes/', filters);
-  }
+   // Sunday School Classes
+   async getSundaySchoolClasses(filters?: Record<string, any>) {
+     return this.get('/sunday-school/', filters);
+   }
 
-  async getSundaySchoolClass(id: string) {
-    return this.get(`/sunday-school/classes/${id}/`);
-  }
+   async getSundaySchoolClass(id: string) {
+     return this.get(`/sunday-school/${id}/`);
+   }
 
-  async createSundaySchoolClass(data: any) {
-    return this.post('/sunday-school/classes/', data);
-  }
+   async createSundaySchoolClass(data: any) {
+     return this.post('/sunday-school/', data);
+   }
 
-  async updateSundaySchoolClass(id: string, data: any) {
-    return this.put(`/sunday-school/classes/${id}/`, data);
-  }
+   async updateSundaySchoolClass(id: string, data: any) {
+     return this.put(`/sunday-school/${id}/`, data);
+   }
 
-  async deleteSundaySchoolClass(id: string) {
-    return this.delete(`/sunday-school/classes/${id}/`);
-  }
+   async deleteSundaySchoolClass(id: string) {
+     return this.delete(`/sunday-school/${id}/`);
+   }
 
   // Sunday School Members (Assignments)
   async getSundaySchoolMembers(filters?: Record<string, any>) {
@@ -531,6 +531,31 @@ class ApiService {
 
     async getSocialQuotes(filters?: Record<string, any>) {
       return this.get('/social-quotes/', filters);
+    }
+
+    // Admin User Accounts
+    async getAdminUsers(filters?: Record<string, any>) {
+      return this.get('/auth/users/', filters);
+    }
+
+    async createAdminUser(data: any) {
+      return this.post('/auth/users/create/', data);
+    }
+
+    async updateAdminUser(id: string, data: any) {
+      return this.put(`/auth/users/${id}/`, data);
+    }
+
+    async resetAdminPassword(id: string, newPassword: string) {
+      return this.post(`/auth/users/${id}/reset_password/`, { new_password: newPassword });
+    }
+
+    async deleteAdminUser(id: string) {
+      return this.delete(`/auth/users/${id}/`);
+    }
+
+    async getAdminUsersByRole(role: string, branchId?: string) {
+      return this.get('/auth/users/', { role, branch_id: branchId });
     }
   }
 

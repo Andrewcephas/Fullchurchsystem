@@ -31,13 +31,24 @@ const Communications = () => {
 
    useEffect(() => { fetchHistory(); }, [selectedBranch, userBranch]);
 
-   const handleSend = async () => {
-     if (!message.trim()) return;
-     const payload = { message, branch_id: userBranch || null };
-     const response = await apiService.createCommunication(payload);
-     if (response.error) { toast({ title: "Error", description: response.error, variant: "destructive" }); return; }
-     setMessage(""); toast({ title: "Announcement saved" }); fetchHistory();
-   };
+    const handleSend = async () => {
+      if (!message.trim()) return;
+      
+      // Determine target branch
+      let targetBranchId = userBranch;
+      if (isSuperAdmin) {
+        if (!selectedBranch || selectedBranch === 'all') {
+          toast({ title: "Please select a branch", variant: "destructive" });
+          return;
+        }
+        targetBranchId = selectedBranch;
+      }
+      
+      const payload = { message, branch_id: targetBranchId };
+      const response = await apiService.createCommunication(payload);
+      if (response.error) { toast({ title: "Error", description: response.error, variant: "destructive" }); return; }
+      setMessage(""); toast({ title: "Announcement saved" }); fetchHistory();
+    };
 
    const handleUpdate = async () => {
      if (!editMessage.trim() || !editId) return;

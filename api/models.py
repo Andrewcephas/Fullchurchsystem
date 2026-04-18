@@ -254,6 +254,8 @@ class SundaySchool(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='sunday_schools')
     class_name = models.CharField(max_length=100)
     class_teacher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sunday_school_classes')
+    teacher_name = models.CharField(max_length=255, null=True, blank=True)  # Text name if not linked to User
+    age_group = models.CharField(max_length=100, null=True, blank=True)
     member_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -264,6 +266,40 @@ class SundaySchool(models.Model):
 
     def __str__(self):
         return f"{self.class_name} - {self.branch.branch_name}"
+
+
+class SundaySchoolMember(models.Model):
+    """Enrollment: Member in a Sunday School class"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sunday_school_class = models.ForeignKey(SundaySchool, on_delete=models.CASCADE, related_name='enrollments')
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='sunday_school_enrollments')
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'sunday_school_members'
+        unique_together = ['sunday_school_class', 'member']
+
+    def __str__(self):
+        return f"{self.member.name} - {self.sunday_school_class.class_name}"
+
+
+class SundaySchoolAttendance(models.Model):
+    """Class attendance record for a specific date"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sunday_school_class = models.ForeignKey(SundaySchool, on_delete=models.CASCADE, related_name='attendance_records')
+    date = models.DateField()
+    present_count = models.IntegerField(default=0)
+    notes = models.TextField(null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'sunday_school_attendance'
+        unique_together = ['sunday_school_class', 'date']
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.sunday_school_class.class_name} - {self.date}"
 
 
 class Notice(models.Model):
@@ -561,4 +597,21 @@ class SocialQuote(models.Model):
 
     def __str__(self):
         return f"{self.theme}: {self.quote_text[:50]}..."
+
+
+class LoginActivity(models.Model):
+    """Track user login activity"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='login_activities')
+    user_email = models.EmailField(null=True, blank=True)
+    login_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, null=True, blank=True)
+
+    class Meta:
+        db_table = 'login_activity'
+        ordering = ['-login_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.login_at}"
 

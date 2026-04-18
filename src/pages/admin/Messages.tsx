@@ -33,33 +33,33 @@ const Messages = () => {
        const roles = rolesResponse.data?.results || rolesResponse.data || [];
        setAdmins(roles.filter((r: any) => r.user_id !== user.id && (r.role === "super_admin" || r.role === "branch_admin")));
 
-       // Fetch messages - need to get both sent and received
-       // API endpoint might need to support filtering. For now, get all and filter?
-       // Better approach: use getPrivateMessages with sender/receiver filter
-       // But API doesn't have OR filter. We'll fetch all messages for current user
-       const msgsResponse = await apiService.getPrivateMessages({ sender_id: user.id || user.user_id });
-       const sentResponse = await apiService.getPrivateMessages({ receiver_id: user.id || user.user_id });
-       const sentMsgs = sentResponse.data?.results || sentResponse.data || [];
-       const receivedMsgs = msgsResponse.data?.results || msgsResponse.data || [];
-       setMessages([...receivedMsgs, ...sentMsgs].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-       setLoading(false);
-     };
-     init();
-   }, []);
+        // Fetch messages - need to get both sent and received
+        // API endpoint might need to support filtering. For now, get all and filter?
+        // Better approach: use getPrivateMessages with sender/receiver filter
+        // But API doesn't have OR filter. We'll fetch all messages for current user
+        const msgsResponse = await apiService.getPrivateMessages({ sender: user.id || user.user_id });
+        const sentResponse = await apiService.getPrivateMessages({ receiver: user.id || user.user_id });
+        const sentMsgs = sentResponse.data?.results || sentResponse.data || [];
+        const receivedMsgs = msgsResponse.data?.results || msgsResponse.data || [];
+        setMessages([...receivedMsgs, ...sentMsgs].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        setLoading(false);
+      };
+      init();
+    }, []);
 
-   const handleSend = async () => {
-     if (!message.trim() || !receiverId) { toast({ title: "Select recipient and type message", variant: "destructive" }); return; }
-     const response = await apiService.createPrivateMessage({ sender_id: currentUserId, receiver_id: receiverId, message });
-     if (response.error) { toast({ title: "Error", description: response.error, variant: "destructive" }); return; }
-     toast({ title: "Message sent" }); setMessage("");
+    const handleSend = async () => {
+      if (!message.trim() || !receiverId) { toast({ title: "Select recipient and type message", variant: "destructive" }); return; }
+      const response = await apiService.createPrivateMessage({ receiver_id: receiverId, message });
+      if (response.error) { toast({ title: "Error", description: response.error, variant: "destructive" }); return; }
+      toast({ title: "Message sent" }); setMessage("");
 
-     // Refresh
-     const msgsResponse = await apiService.getPrivateMessages({ sender_id: currentUserId });
-     const sentResponse = await apiService.getPrivateMessages({ receiver_id: currentUserId });
-     const sentMsgs = sentResponse.data?.results || sentResponse.data || [];
-     const receivedMsgs = msgsResponse.data?.results || msgsResponse.data || [];
-     setMessages([...receivedMsgs, ...sentMsgs].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-   };
+      // Refresh
+      const msgsResponse = await apiService.getPrivateMessages({ sender: currentUserId });
+      const sentResponse = await apiService.getPrivateMessages({ receiver: currentUserId });
+      const sentMsgs = sentResponse.data?.results || sentResponse.data || [];
+      const receivedMsgs = msgsResponse.data?.results || msgsResponse.data || [];
+      setMessages([...receivedMsgs, ...sentMsgs].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+    };
 
    const markRead = async (id: string) => {
      const response = await apiService.updatePrivateMessage(id, { is_read: true });

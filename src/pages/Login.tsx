@@ -6,13 +6,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Eye, EyeOff } from "lucide-react";
+
+const getRedirectPath = (role: string | undefined): string => {
+  switch (role) {
+    case "super_admin":
+    case "secretary":
+      return "/admin";
+    case "branch_admin":
+      return "/admin";
+    case "sunday_school_teacher":
+      return "/admin/sunday-school";
+    default:
+      return "/admin";
+  }
+};
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { login, loading } = useAuth();
+  const { login, loading, user } = useAuth();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -20,7 +35,8 @@ const Login = () => {
     const success = await login(username, password);
     if (success) {
       toast({ title: "Login successful", description: "Welcome back!" });
-      navigate("/admin");
+      const redirectPath = getRedirectPath(user?.role);
+      navigate(redirectPath);
     } else {
       toast({
         title: "Login failed",
@@ -46,9 +62,24 @@ const Login = () => {
               <Label htmlFor="username">Username</Label>
               <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="admin" />
             </div>
-            <div>
+            <div className="relative">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+              <Input 
+                id="password" 
+                type={showPassword ? "text" : "password"} 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+                placeholder="••••••••" 
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-[30px] text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}

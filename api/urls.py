@@ -7,10 +7,12 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from api.views import (
     BranchViewSet, MemberViewSet, UserRoleViewSet, AttendanceViewSet,
-    FinanceViewSet, EventViewSet, SermonViewSet, NoticeViewSet,
-    PrayerRequestViewSet, MemberTransferViewSet, NotificationPreferenceViewSet,
-    BackupLogViewSet, DataAccessLogViewSet, SocialQuoteViewSet, AnalyticsViewSet,
-    LoginView, LogoutView, UserView
+    FinanceViewSet, EventViewSet, SermonViewSet, SundaySchoolViewSet,
+    NoticeViewSet, PrayerRequestViewSet, CommunicationViewSet,
+    MemberTransferViewSet, NotificationPreferenceViewSet, BackupLogViewSet,
+    DataAccessLogViewSet, PrivateMessageViewSet, SiteSettingsViewSet,
+    SocialQuoteViewSet, AnalyticsViewSet, LoginView, LogoutView, UserView,
+    LoginActivityViewSet, AdminUserViewSet
 )
 
 # Create router and register viewsets
@@ -22,14 +24,20 @@ router.register(r'attendance', AttendanceViewSet)
 router.register(r'finance', FinanceViewSet)
 router.register(r'events', EventViewSet)
 router.register(r'sermons', SermonViewSet)
+router.register(r'sunday-school', SundaySchoolViewSet, basename='sunday-school')
 router.register(r'notices', NoticeViewSet)
 router.register(r'prayer-requests', PrayerRequestViewSet)
+router.register(r'communications', CommunicationViewSet)
 router.register(r'member-transfers', MemberTransferViewSet)
 router.register(r'notification-preferences', NotificationPreferenceViewSet)
 router.register(r'backup-logs', BackupLogViewSet)
 router.register(r'data-access-logs', DataAccessLogViewSet)
+router.register(r'private-messages', PrivateMessageViewSet, basename='private-messages')
+router.register(r'site-settings', SiteSettingsViewSet, basename='site-settings')
 router.register(r'social-quotes', SocialQuoteViewSet, basename='social-quotes')
 router.register(r'analytics', AnalyticsViewSet, basename='analytics')
+router.register(r'login-activity', LoginActivityViewSet, basename='login-activity')
+router.register(r'admin-users', AdminUserViewSet, basename='admin-users')
 
 app_name = 'api'
 
