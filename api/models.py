@@ -330,7 +330,7 @@ class PrayerRequest(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='prayer_requests')
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='prayer_requests', null=True, blank=True)
     name = models.CharField(max_length=255)
     email = models.EmailField(null=True, blank=True)
     phone = models.CharField(max_length=20, null=True, blank=True)

@@ -41,7 +41,7 @@ const Finance = () => {
 
    const handleSave = async () => {
      if (!form.type || !form.amount || !form.date) { toast({ title: "Fill required fields", variant: "destructive" }); return; }
-     const payload = { type: form.type, amount: parseFloat(form.amount), date: form.date, giver: form.giver, method: form.method, notes: form.notes, branch_id: form.branch_id || userBranch || null };
+     const payload = { category: form.type.toLowerCase().replace(' ', '_'), amount: parseFloat(form.amount), date: form.date, giver: form.giver, payment_method: form.method.toLowerCase().replace(' ', '_'), notes: form.notes, branch_id: form.branch_id || userBranch || null };
 
      if (editId) {
        const response = await apiService.updateFinance(editId, payload);
@@ -56,7 +56,7 @@ const Finance = () => {
    };
 
    const handleEdit = (r: any) => {
-     setForm({ type: r.type, amount: String(r.amount), date: r.date, giver: r.giver || "", method: r.method || "", notes: r.notes || "", branch_id: r.branch_id || "" });
+     setForm({ type: r.category, amount: String(r.amount), date: r.date, giver: r.giver || "", method: r.payment_method || "", notes: r.notes || "", branch_id: r.branch_id || "" });
      setEditId(r.id); setDialogOpen(true);
    };
 
@@ -69,7 +69,7 @@ const Finance = () => {
   const total = records.reduce((sum, r) => sum + Number(r.amount), 0);
 
   const handleExport = () => {
-    const csv = "Date,Type,Giver,Amount,Method,Notes\n" + records.map(r => `${r.date},${r.type},${r.giver || ""},${r.amount},${r.method || ""},${r.notes || ""}`).join("\n");
+    const csv = "Date,Type,Giver,Amount,Method,Notes\n" + records.map(r => `${r.date},${r.category},${r.giver || ""},${r.amount},${r.payment_method || ""},${r.notes || ""}`).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "finance.csv"; a.click();
   };
@@ -131,10 +131,10 @@ const Finance = () => {
                 {records.map(r => (
                   <TableRow key={r.id}>
                     <TableCell>{r.date}</TableCell>
-                    <TableCell><Badge variant="secondary">{r.type}</Badge></TableCell>
+                    <TableCell><Badge variant="secondary">{r.category}</Badge></TableCell>
                     <TableCell>{r.giver || "Anonymous"}</TableCell>
                     <TableCell className="font-bold">KES {Number(r.amount).toLocaleString()}</TableCell>
-                    <TableCell>{r.method || "—"}</TableCell>
+                    <TableCell>{r.payment_method || "—"}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(r)}><Pencil className="h-4 w-4 text-primary" /></Button>

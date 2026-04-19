@@ -67,6 +67,10 @@ class ApiService {
         );
       }
 
+      if (response.status === 204) {
+        return { data: {} as T };
+      }
+
       const data = await response.json();
       return { data };
     } catch (error) {
@@ -246,7 +250,7 @@ class ApiService {
   }
 
   async removeMemberFromClass(id: string) {
-    return this.delete(`/sunday-school/members/${id}/`);
+    return this.request(`/sunday-school/members/?enrollment_id=${id}`, { method: 'DELETE' });
   }
 
   // Sunday School Attendance

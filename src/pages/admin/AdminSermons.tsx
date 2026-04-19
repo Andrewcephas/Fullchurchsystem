@@ -39,7 +39,7 @@ const AdminSermons = () => {
 
    const handleSave = async () => {
      if (!form.title || !form.date) { toast({ title: "Title and date required", variant: "destructive" }); return; }
-     const payload = { title: form.title, speaker: form.speaker, date: form.date, video_url: form.video_url, topic: form.topic, branch_id: form.branch_id || userBranch || null };
+     const payload = { title: form.title, speaker: form.speaker, sermon_date: form.date, video_url: form.video_url, description: form.topic, branch_id: form.branch_id || userBranch };
 
      if (editId) {
        const response = await apiService.updateSermon(editId, payload);

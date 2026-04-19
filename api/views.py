@@ -63,7 +63,7 @@ class BranchViewSet(viewsets.ModelViewSet):
     """Branch management"""
     queryset = Branch.objects.all()
     serializer_class = BranchSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['branch_name', 'location']
     ordering_fields = ['branch_name', 'created_at']
@@ -250,7 +250,7 @@ class EventViewSet(viewsets.ModelViewSet):
     """Event management"""
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [ SearchFilter, OrderingFilter]
     # filterset_fields = ['branch', 'is_conference']
     search_fields = ['title', 'description']
@@ -261,7 +261,7 @@ class EventViewSet(viewsets.ModelViewSet):
         """Filter events by user's branch if not super admin"""
         user = self.request.user
         if not user.is_authenticated:
-            return Event.objects.none()
+            return Event.objects.all()
         
         try:
             if user.role.role == 'super_admin':
@@ -276,7 +276,7 @@ class SermonViewSet(viewsets.ModelViewSet):
     """Sermon management"""
     queryset = Sermon.objects.all()
     serializer_class = SermonSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [ SearchFilter, OrderingFilter]
     # filterset_fields = ['branch', 'speaker']
     search_fields = ['title', 'description']
@@ -287,7 +287,7 @@ class SermonViewSet(viewsets.ModelViewSet):
         """Filter sermons by user's branch if not super admin"""
         user = self.request.user
         if not user.is_authenticated:
-            return Sermon.objects.none()
+            return Sermon.objects.all()
         
         try:
             if user.role.role == 'super_admin':
@@ -302,7 +302,7 @@ class NoticeViewSet(viewsets.ModelViewSet):
     """Notice management"""
     queryset = Notice.objects.all()
     serializer_class = NoticeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [ SearchFilter, OrderingFilter]
     # filterset_fields = ['is_global']
     search_fields = ['title', 'content']
@@ -313,7 +313,7 @@ class NoticeViewSet(viewsets.ModelViewSet):
         """Get notices for user's branch or global notices"""
         user = self.request.user
         if not user.is_authenticated:
-            return Notice.objects.none()
+            return Notice.objects.filter(is_global=True)
         
         try:
             if user.role.role == 'super_admin':
@@ -336,6 +336,11 @@ class PrayerRequestViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at']
     ordering = ['-created_at']
 
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
     def get_queryset(self):
         """Filter prayer requests by user's branch if not super admin"""
         user = self.request.user
@@ -349,6 +354,18 @@ class PrayerRequestViewSet(viewsets.ModelViewSet):
                 return PrayerRequest.objects.filter(branch=user.role.branch)
         except:
             return PrayerRequest.objects.none()
+
+    def perform_create(self, serializer):
+        """Auto-assign branch if not provided (for public requests)"""
+        if not serializer.validated_data.get('branch'):
+            # Try to find 'Main Branch'
+            main_branch = Branch.objects.filter(branch_name__icontains='Main').first()
+            if main_branch:
+                serializer.save(branch=main_branch)
+            else:
+                serializer.save()
+        else:
+            serializer.save()
 
 
 class MemberTransferViewSet(viewsets.ModelViewSet):
@@ -500,7 +517,7 @@ class SocialQuoteViewSet(viewsets.ModelViewSet):
     """Social media quotes management with generation"""
     queryset = SocialQuote.objects.filter(is_active=True)
     serializer_class = SocialQuoteSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [ SearchFilter, OrderingFilter]
     # filterset_fields = ['theme', 'is_active']
     search_fields = ['quote_text', 'author', 'reference']
@@ -617,7 +634,7 @@ class SiteSettingsViewSet(viewsets.ModelViewSet):
     """Global site settings (key-value store)"""
     queryset = SiteSettings.objects.all()
     serializer_class = SiteSettingsSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         """Settings are global - any authenticated user can read"""
@@ -671,87 +688,94 @@ class SundaySchoolViewSet(viewsets.ModelViewSet):
         except:
             return SundaySchool.objects.none()
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get', 'post', 'delete'])
     def members(self, request):
-        """Get members for a specific class (or all classes for branch)"""
-        class_id = request.query_params.get('class_id')
-        branch_id = request.query_params.get('branch_id')
-        
-        queryset = SundaySchoolMember.objects.all()
-        
-        # Filter by branch
-        if branch_id:
-            queryset = queryset.filter(sunday_school_class__branch_id=branch_id)
-        elif class_id:
-            queryset = queryset.filter(sunday_school_class_id=class_id)
-        else:
-            # If no filter, restrict to user's branch
+        """Manage members for a specific class"""
+        if request.method == 'GET':
+            class_id = request.query_params.get('class_id')
+            branch_id = request.query_params.get('branch_id')
+            
+            queryset = SundaySchoolMember.objects.all()
+            
+            # Filter by branch
+            if branch_id:
+                queryset = queryset.filter(sunday_school_class__branch_id=branch_id)
+            elif class_id:
+                queryset = queryset.filter(sunday_school_class_id=class_id)
+            else:
+                # If no filter, restrict to user's branch
+                try:
+                    if request.user.role.role == 'super_admin':
+                        pass  # show all
+                    else:
+                        queryset = queryset.filter(sunday_school_class__branch=request.user.role.branch)
+                except:
+                    return Response({'error': 'Unauthorized'}, status=401)
+            
+            serializer = SundaySchoolMemberSerializer(queryset, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            class_id = request.data.get('class_id')
+            member_id = request.data.get('member_id')
+            
+            if not class_id or not member_id:
+                return Response(
+                    {'error': 'class_id and member_id required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             try:
-                if request.user.role.role == 'super_admin':
-                    pass  # show all
-                else:
-                    queryset = queryset.filter(sunday_school_class__branch=request.user.role.branch)
+                ss_class = SundaySchool.objects.get(id=class_id)
+                member = Member.objects.get(id=member_id)
+            except (SundaySchool.DoesNotExist, Member.DoesNotExist):
+                return Response({'error': 'Invalid class or member'}, status=404)
+            
+            # Check branch access
+            try:
+                if request.user.role.role != 'super_admin' and ss_class.branch != request.user.role.branch:
+                    return Response({'error': 'Cannot assign across branches'}, status=403)
             except:
                 return Response({'error': 'Unauthorized'}, status=401)
-        
-        serializer = SundaySchoolMemberSerializer(queryset, many=True)
-        return Response(serializer.data)
+            
+            enrollment, created = SundaySchoolMember.objects.get_or_create(
+                sunday_school_class=ss_class,
+                member=member
+            )
+            
+            if created:
+                # Update member count
+                ss_class.member_count = SundaySchoolMember.objects.filter(sunday_school_class=ss_class).count()
+                ss_class.save(update_fields=['member_count'])
+            
+            serializer = SundaySchoolMemberSerializer(enrollment)
+            return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
-    @action(detail=False, methods=['post'])
-    def members(self, request):
-        """Enroll a member in a class"""
-        class_id = request.data.get('class_id')
-        member_id = request.data.get('member_id')
-        
-        if not class_id or not member_id:
-            return Response(
-                {'error': 'class_id and member_id required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            ss_class = SundaySchool.objects.get(id=class_id)
-            member = Member.objects.get(id=member_id)
-        except (SundaySchool.DoesNotExist, Member.DoesNotExist):
-            return Response({'error': 'Invalid class or member'}, status=404)
-        
-        # Check branch access
-        try:
-            if request.user.role.role != 'super_admin' and ss_class.branch != request.user.role.branch:
-                return Response({'error': 'Cannot assign across branches'}, status=403)
-        except:
-            return Response({'error': 'Unauthorized'}, status=401)
-        
-        enrollment, created = SundaySchoolMember.objects.get_or_create(
-            sunday_school_class=ss_class,
-            member=member
-        )
-        
-        if created:
-            # Update member count
-            ss_class.member_count = SundaySchoolMember.objects.filter(sunday_school_class=ss_class).count()
-            ss_class.save(update_fields=['member_count'])
-        
-        serializer = SundaySchoolMemberSerializer(enrollment)
-        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            enrollment_id = request.query_params.get('enrollment_id')
+            if enrollment_id:
+                try:
+                    enrollment = SundaySchoolMember.objects.get(id=enrollment_id)
+                except SundaySchoolMember.DoesNotExist:
+                    return Response({'error': 'Not found'}, status=404)
+            else:
+                class_id = request.query_params.get('class_id') or request.data.get('class_id')
+                member_id = request.query_params.get('member_id') or request.data.get('member_id')
+                
+                if not class_id or not member_id:
+                    return Response(
+                        {'error': 'enrollment_id OR class_id and member_id required'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                try:
+                    enrollment = SundaySchoolMember.objects.get(
+                        sunday_school_class_id=class_id,
+                        member_id=member_id
+                    )
+                except SundaySchoolMember.DoesNotExist:
+                    return Response({'error': 'Enrollment not found'}, status=404)
 
-    @action(detail=False, methods=['delete'])
-    def members(self, request):
-        """Remove a member from a class"""
-        class_id = request.query_params.get('class_id')
-        member_id = request.query_params.get('member_id')
-        
-        if not class_id or not member_id:
-            return Response(
-                {'error': 'class_id and member_id required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            enrollment = SundaySchoolMember.objects.get(
-                sunday_school_class_id=class_id,
-                member_id=member_id
-            )
             ss_class = enrollment.sunday_school_class
             enrollment.delete()
             
@@ -760,8 +784,6 @@ class SundaySchoolViewSet(viewsets.ModelViewSet):
             ss_class.save(update_fields=['member_count'])
             
             return Response({'message': 'Member removed'})
-        except SundaySchoolMember.DoesNotExist:
-            return Response({'error': 'Enrollment not found'}, status=404)
 
     @action(detail=False, methods=['get'])
     def attendance(self, request):

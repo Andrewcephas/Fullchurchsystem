@@ -174,8 +174,10 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 
 # CSRF Configuration
 CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:5173',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
 ]

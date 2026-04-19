@@ -11,28 +11,28 @@ import {
 } from "lucide-react";
 
 const sidebarItems = [
-  { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { title: "Branches", href: "/admin/branches", icon: Building2 },
-  { title: "Members", href: "/admin/members", icon: Users },
-  { title: "Member Profiles", href: "/admin/member-profiles", icon: UserPlus, badge: "NEW" },
-  { title: "Member Transfers", href: "/admin/member-transfers", icon: ArrowRightLeft, badge: "NEW" },
-  { title: "Attendance", href: "/admin/attendance", icon: ClipboardCheck },
-  { title: "Finance", href: "/admin/finance", icon: DollarSign },
-  { title: "Finance Reports", href: "/admin/finance-reports", icon: TrendingUp, badge: "NEW" },
-  { title: "Events", href: "/admin/events", icon: Calendar },
-  { title: "Sermons", href: "/admin/sermons", icon: Book },
-  { title: "Sunday School", href: "/admin/sunday-school", icon: GraduationCap },
-  { title: "Notices", href: "/admin/notices", icon: Bell },
-  { title: "Messages", href: "/admin/messages", icon: Mail },
-  { title: "Communications", href: "/admin/communications", icon: MessageSquare },
-  { title: "Prayer Requests", href: "/admin/prayer-requests", icon: Heart },
-  { title: "Social Quotes", href: "/admin/social-quotes", icon: Sparkles },
-  { title: "Notifications", href: "/admin/notifications", icon: NotificationIcon, badge: "NEW" },
-  { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { title: "Analytics Enhanced", href: "/admin/analytics-enhanced", icon: TrendingUp, badge: "ENHANCED" },
-  { title: "Backup & Security", href: "/admin/backup-security", icon: HardDrive, badge: "NEW" },
-  { title: "User Roles", href: "/admin/user-roles", icon: Shield },
-  { title: "Settings", href: "/admin/settings", icon: Settings },
+  { title: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ['super_admin', 'branch_admin', 'secretary', 'sunday_school_teacher'] },
+  { title: "Branches", href: "/admin/branches", icon: Building2, roles: ['super_admin'] },
+  { title: "Members", href: "/admin/members", icon: Users, roles: ['super_admin', 'branch_admin', 'secretary'] },
+  { title: "Member Profiles", href: "/admin/member-profiles", icon: UserPlus, badge: "NEW", roles: ['super_admin', 'branch_admin', 'secretary'] },
+  { title: "Member Transfers", href: "/admin/member-transfers", icon: ArrowRightLeft, badge: "NEW", roles: ['super_admin', 'branch_admin'] },
+  { title: "Attendance", href: "/admin/attendance", icon: ClipboardCheck, roles: ['super_admin', 'branch_admin', 'secretary'] },
+  { title: "Finance", href: "/admin/finance", icon: DollarSign, roles: ['super_admin', 'branch_admin'] },
+  { title: "Finance Reports", href: "/admin/finance-reports", icon: TrendingUp, badge: "NEW", roles: ['super_admin', 'branch_admin'] },
+  { title: "Events", href: "/admin/events", icon: Calendar, roles: ['super_admin', 'branch_admin', 'secretary'] },
+  { title: "Sermons", href: "/admin/sermons", icon: Book, roles: ['super_admin', 'branch_admin'] },
+  { title: "Sunday School", href: "/admin/sunday-school", icon: GraduationCap, roles: ['super_admin', 'branch_admin', 'sunday_school_teacher'] },
+  { title: "Notices", href: "/admin/notices", icon: Bell, roles: ['super_admin', 'branch_admin', 'secretary'] },
+  { title: "Messages", href: "/admin/messages", icon: Mail, roles: ['super_admin', 'branch_admin', 'secretary', 'sunday_school_teacher'] },
+  { title: "Communications", href: "/admin/communications", icon: MessageSquare, roles: ['super_admin', 'branch_admin', 'secretary'] },
+  { title: "Prayer Requests", href: "/admin/prayer-requests", icon: Heart, roles: ['super_admin', 'branch_admin', 'secretary'] },
+  { title: "Social Quotes", href: "/admin/social-quotes", icon: Sparkles, roles: ['super_admin', 'branch_admin'] },
+  { title: "Notifications", href: "/admin/notifications", icon: NotificationIcon, badge: "NEW", roles: ['super_admin', 'branch_admin', 'secretary', 'sunday_school_teacher'] },
+  { title: "Analytics", href: "/admin/analytics", icon: BarChart3, roles: ['super_admin', 'branch_admin'] },
+  { title: "Analytics Enhanced", href: "/admin/analytics-enhanced", icon: TrendingUp, badge: "ENHANCED", roles: ['super_admin', 'branch_admin'] },
+  { title: "Backup & Security", href: "/admin/backup-security", icon: HardDrive, badge: "NEW", roles: ['super_admin'] },
+  { title: "User Roles", href: "/admin/user-roles", icon: Shield, roles: ['super_admin'] },
+  { title: "Settings", href: "/admin/settings", icon: Settings, roles: ['super_admin'] },
 ];
 
 const AdminLayout = () => {
@@ -90,7 +90,13 @@ const AdminLayout = () => {
           </Button>
         </div>
         <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
-          {sidebarItems.map((item: any) => {
+          {sidebarItems.filter((item: any) => {
+            if (!user) return false;
+            if (user.is_superuser) return true;
+            const userRole = user.role || 'member';
+            if (userRole === 'super_admin') return true;
+            return item.roles.includes(userRole);
+          }).map((item: any) => {
             const isActive = location.pathname === item.href;
             return (
               <Link key={item.href} to={item.href}

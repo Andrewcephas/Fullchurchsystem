@@ -219,7 +219,9 @@ class PrayerRequestSerializer(serializers.ModelSerializer):
     branch_id = serializers.PrimaryKeyRelatedField(
         source='branch',
         queryset=Branch.objects.all(),
-        write_only=True
+        write_only=True,
+        required=False,
+        allow_null=True
     )
     
     class Meta:
