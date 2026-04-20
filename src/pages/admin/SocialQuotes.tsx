@@ -93,9 +93,9 @@ const SocialQuotes = () => {
      ctx.textAlign = "center";
      ctx.textBaseline = "middle";
 
-     // Word wrap
-     const words = q.split(" ");
-     let lines: string[] = [];
+// Word wrap
+      const words = q.split(" ");
+      const lines: string[] = [];
      let currentLine = "";
      words.forEach((word) => {
        const test = currentLine + (currentLine ? " " : "") + word;

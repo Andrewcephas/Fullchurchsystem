@@ -15,6 +15,7 @@ import Events from "@/pages/Events";
 import Give from "@/pages/Give";
 import LiveStream from "@/pages/LiveStream";
 import Contact from "@/pages/Contact";
+import Quotes from "@/pages/Quotes";
 import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -61,6 +62,7 @@ function App() {
         <Route path="/give" element={<PublicLayout><Give /></PublicLayout>} />
         <Route path="/live" element={<PublicLayout><LiveStream /></PublicLayout>} />
         <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+        <Route path="/quotes" element={<PublicLayout><Quotes /></PublicLayout>} />
         <Route path="/prayer-request" element={<PublicLayout><PrayerRequestForm /></PublicLayout>} />
         <Route path="/login" element={<Login />} />
 

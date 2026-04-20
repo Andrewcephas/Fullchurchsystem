@@ -84,7 +84,48 @@ const BackupAndSecurity = () => {
   const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false);
   const [backupType, setBackupType] = useState<"full" | "incremental" | "member_data">("full");
 
-  // Check authorization
+  // Fetch backup logs (must be called unconditionally)
+  const { data: backupLogs = [], isLoading: isLoadingBackups } = useQuery({
+    queryKey: ["backup-logs"],
+    queryFn: async () => {
+      const response = await apiService.getBackupLogs({ limit: 20 });
+      return (response.data?.results || response.data || []) as BackupLog[];
+    },
+  });
+
+  // Fetch data access logs (must be called unconditionally)
+  const { data: accessLogs = [], isLoading: isLoadingAccessLogs } = useQuery({
+    queryKey: ["data-access-logs"],
+    queryFn: async () => {
+      const response = await apiService.getDataAccessLogs({ limit: 50 });
+      return (response.data?.results || response.data || []) as DataAccessLog[];
+    },
+  });
+
+  // Create backup mutation (must be called unconditionally)
+  const createBackupMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiService.createBackup(backupType);
+      if (response.error) throw new Error(response.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["backup-logs"] });
+      setIsBackupDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Backup process initiated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to initiate backup",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Check authorization after hooks
   if (!isSuperAdmin) {
     return (
       <div className="space-y-6">
@@ -97,47 +138,6 @@ const BackupAndSecurity = () => {
       </div>
     );
   }
-
-   // Fetch backup logs
-   const { data: backupLogs = [], isLoading: isLoadingBackups } = useQuery({
-     queryKey: ["backup-logs"],
-     queryFn: async () => {
-       const response = await apiService.getBackupLogs({ limit: 20 });
-       return (response.data?.results || response.data || []) as BackupLog[];
-     },
-   });
-
-   // Fetch data access logs
-   const { data: accessLogs = [], isLoading: isLoadingAccessLogs } = useQuery({
-     queryKey: ["data-access-logs"],
-     queryFn: async () => {
-       const response = await apiService.getDataAccessLogs({ limit: 50 });
-       return (response.data?.results || response.data || []) as DataAccessLog[];
-     },
-   });
-
-   // Create backup mutation
-   const createBackupMutation = useMutation({
-     mutationFn: async () => {
-       const response = await apiService.createBackup(backupType);
-       if (response.error) throw new Error(response.error);
-     },
-     onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ["backup-logs"] });
-       setIsBackupDialogOpen(false);
-       toast({
-         title: "Success",
-         description: "Backup process initiated successfully",
-       });
-     },
-     onError: () => {
-       toast({
-         title: "Error",
-         description: "Failed to initiate backup",
-         variant: "destructive",
-       });
-     },
-   });
 
   const formatBytes = (bytes: number) => {
     if (!bytes) return "0 B";

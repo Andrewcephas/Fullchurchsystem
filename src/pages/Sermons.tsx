@@ -105,7 +105,7 @@ return (
                         </div>
                       </div>
                       <div className="absolute top-4 right-4 z-20">
-                        <Badge className="bg-primary text-white border-none px-4 py-1 rounded-full font-black text-[10px] uppercase tracking-widest">{s.date}</Badge>
+                        <Badge className="bg-primary text-white border-none px-4 py-1 rounded-full font-black text-[10px] uppercase tracking-widest">{s.sermon_date ? new Date(s.sermon_date).toLocaleDateString() : 'Recent'}</Badge>
                       </div>
                       <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
                         <Music className="w-12 h-12 text-white/20" />

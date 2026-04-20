@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Users, Calendar, Book, Heart, Play, Phone, ChevronDown, ShieldCheck } from "lucide-react";
+import { Menu, Users, Calendar, Book, Heart, Play, Phone, ChevronDown, ShieldCheck, Quote } from "lucide-react";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -29,6 +29,7 @@ const Navigation = () => {
     { name: "Events", href: "/events", icon: Calendar },
     { name: "Sermons", href: "/sermons", icon: Book },
     { name: "Give", href: "/give", icon: Heart },
+    { name: "Quotes", href: "/quotes", icon: Quote },
     { name: "Contact", href: "/contact", icon: Phone },
   ];
 

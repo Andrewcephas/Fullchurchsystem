@@ -177,6 +177,10 @@ class ApiService {
     return this.get(`/members/${id}/profile/`);
   }
 
+  async getMemberActivities(id: string) {
+    return this.get(`/members/${id}/activities/`);
+  }
+
   async createMember(data: any) {
     return this.post('/members/', data);
   }
@@ -539,27 +543,35 @@ class ApiService {
 
     // Admin User Accounts
     async getAdminUsers(filters?: Record<string, any>) {
-      return this.get('/auth/users/', filters);
+      return this.get('/admin-users/', filters);
     }
 
     async createAdminUser(data: any) {
-      return this.post('/auth/users/create/', data);
+      return this.post('/admin-users/', data);
     }
 
     async updateAdminUser(id: string, data: any) {
-      return this.put(`/auth/users/${id}/`, data);
+      return this.put(`/admin-users/${id}/`, data);
     }
 
-    async resetAdminPassword(id: string, newPassword: string) {
-      return this.post(`/auth/users/${id}/reset_password/`, { new_password: newPassword });
+    async resetAdminPassword(userId: string, newPassword: string) {
+      return this.post('/admin-users/reset_password/', { user_id: userId, new_password: newPassword });
     }
 
     async deleteAdminUser(id: string) {
-      return this.delete(`/auth/users/${id}/`);
+      return this.delete(`/admin-users/${id}/`);
     }
 
     async getAdminUsersByRole(role: string, branchId?: string) {
-      return this.get('/auth/users/', { role, branch_id: branchId });
+      return this.get('/admin-users/', { role, branch_id: branchId });
+    }
+
+    // Assign member as admin (Secretary or Pastor)
+    async assignMemberAsAdmin(memberId: string, role: string, branchId?: string) {
+      return this.post(`/members/${memberId}/assign_as_admin/`, {
+        role,
+        branch_id: branchId || null,
+      });
     }
   }
 

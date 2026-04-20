@@ -350,9 +350,10 @@ class PrayerRequest(models.Model):
 class Communication(models.Model):
     """Branch communications"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='communications')
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='communications', null=True, blank=True)
     title = models.CharField(max_length=255)
     message = models.TextField()
+    is_bishop_broadcast = models.BooleanField(default=False, help_text='If True, visible to all branch admins/secretaries')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -112,6 +112,95 @@ class MemberViewSet(viewsets.ModelViewSet):
         # Implementation for CSV import
         return Response({'message': 'Bulk import functionality'})
 
+    @action(detail=True, methods=['get'])
+    def activities(self, request, pk=None):
+        """Get member activity history (attendance and finance)"""
+        member = self.get_object()
+        
+        # Get attendance records
+        attendance = AttendanceMember.objects.filter(member=member).order_by('-attendance__service_date')
+        attendance_data = [{
+            'date': att.attendance.service_date,
+            'type': att.attendance.service_type,
+            'checked_in': att.checked_in_at
+        } for att in attendance]
+        
+        # Get finance records
+        finance = Finance.objects.filter(giver=member.name).order_by('-date')
+        finance_data = [{
+            'date': f.date,
+            'amount': f.amount,
+            'category': f.category,
+            'method': f.payment_method
+        } for f in finance]
+        
+        return Response({
+            'attendance': attendance_data,
+            'finance': finance_data
+        })
+
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
+    def assign_as_admin(self, request, pk=None):
+        """Assign a member as a branch admin (pastor) or secretary"""
+        member = self.get_object()
+        role = request.data.get('role')
+        branch_id = request.data.get('branch_id')
+        
+        if role not in ['secretary', 'branch_admin', 'sunday_school_teacher']:
+            return Response(
+                {'error': 'Role must be secretary, branch_admin (pastor), or sunday_school_teacher'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            # Check if user with this email already exists
+            if not member.email:
+                return Response(
+                    {'error': 'Member must have an email address to be assigned as admin'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            user, created = User.objects.get_or_create(
+                username=member.email,
+                defaults={
+                    'email': member.email,
+                    'first_name': member.name.split(' ')[0],
+                    'last_name': ' '.join(member.name.split(' ')[1:]) if ' ' in member.name else ''
+                }
+            )
+            
+            if created:
+                # Set password to phone number by default
+                user.set_password(member.phone)
+                user.save()
+            
+            # Create or update UserRole
+            branch = Branch.objects.get(id=branch_id) if branch_id else member.branch
+            user_role, role_created = UserRole.objects.get_or_create(
+                user=user,
+                defaults={'role': role, 'branch': branch}
+            )
+            
+            if not role_created:
+                user_role.role = role
+                user_role.branch = branch
+                user_role.save()
+                
+            return Response(
+                {'message': f'Successfully assigned {member.name} as {role}'},
+                status=status.HTTP_201_CREATED if role_created else status.HTTP_200_OK
+            )
+        except Branch.DoesNotExist:
+            return Response(
+                {'error': 'Branch not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class UserRoleViewSet(viewsets.ModelViewSet):
     """User role management"""
@@ -528,7 +617,7 @@ class SocialQuoteViewSet(viewsets.ModelViewSet):
         """Return active quotes ordered by usage"""
         return SocialQuote.objects.filter(is_active=True).order_by('-usage_count', '?')
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
     def generate(self, request):
         """Generate/retrieve a quote for a specific theme"""
         theme = request.data.get('theme', 'Faith')
@@ -566,7 +655,7 @@ class SocialQuoteViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def themes(self, request):
         """Get all available themes"""
         return Response([

@@ -1,10 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
-import { Heart, Play, ExternalLink } from "lucide-react";
-=======
-import { Heart, Sparkles, MessageSquare, ArrowRight, Shield, Zap, Gift } from "lucide-react";
->>>>>>> 0697c9f91682da633fa6e48c667a3ef4878cfa9e
+import { Heart, MessageSquare, Shield, Zap, Gift } from "lucide-react";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";

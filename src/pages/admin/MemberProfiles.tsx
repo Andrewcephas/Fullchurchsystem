@@ -278,10 +278,13 @@ const MemberProfiles = () => {
             </Card>
           ))
         )}
+
       </div>
     </div>
   );
 };
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface MemberEditDialogProps {
   member: MemberProfile;
@@ -292,6 +295,14 @@ interface MemberEditDialogProps {
 const MemberEditDialog = ({ member, onSave, isLoading }: MemberEditDialogProps) => {
   const [formData, setFormData] = useState<Partial<MemberProfile>>(member);
 
+  const { data: activities, isLoading: isActivitiesLoading } = useQuery({
+    queryKey: ["member_activities", member.id],
+    queryFn: async () => {
+      const response = await apiService.getMemberActivities(member.id);
+      return response.data;
+    },
+  });
+
   const handleSubmit = () => {
     onSave({
       id: member.id,
@@ -300,134 +311,189 @@ const MemberEditDialog = ({ member, onSave, isLoading }: MemberEditDialogProps) 
   };
 
   return (
-    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Edit Member Profile</DialogTitle>
+        <DialogTitle>Member Profile & Activities</DialogTitle>
         <DialogDescription>
-          Update detailed information for {member.name}
+          Detailed information and history for {member.name}
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-4">
-        {/* Basic Information */}
-        <div>
-          <h3 className="font-semibold mb-3">Basic Information</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Name</Label>
-              <Input
-                value={formData.name || ""}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={formData.email || ""}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input
-                value={formData.phone || ""}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Occupation</Label>
-              <Input
-                value={formData.occupation || ""}
-                onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
-                placeholder="Optional"
-              />
-            </div>
-            <div>
-              <Label>Blood Type</Label>
-              <Input
-                value={formData.blood_type || ""}
-                onChange={(e) => setFormData({ ...formData, blood_type: e.target.value })}
-                placeholder="Optional"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Family Information */}
-        <div className="border-t pt-4">
-          <h3 className="font-semibold mb-3">Family Information</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Spouse Name</Label>
-              <Input
-                value={formData.spouse_name || ""}
-                onChange={(e) => setFormData({ ...formData, spouse_name: e.target.value })}
-                placeholder="Optional"
-              />
-            </div>
-            <div>
-              <Label>Spouse Phone</Label>
-              <Input
-                value={formData.spouse_phone || ""}
-                onChange={(e) => setFormData({ ...formData, spouse_phone: e.target.value })}
-                placeholder="Optional"
-              />
-            </div>
-            <div>
-              <Label>Number of Children</Label>
-              <Input
-                type="number"
-                value={formData.children_count || ""}
-                onChange={(e) => setFormData({ ...formData, children_count: parseInt(e.target.value) || null })}
-                placeholder="Optional"
-              />
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="profile">Profile Details</TabsTrigger>
+          <TabsTrigger value="activities">Activities & Contributions</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="profile" className="space-y-4 pt-4">
+          {/* Basic Information */}
+          <div>
+            <h3 className="font-semibold mb-3">Basic Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  value={formData.name || ""}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={formData.email || ""}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  value={formData.phone || ""}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Occupation</Label>
+                <Input
+                  value={formData.occupation || ""}
+                  onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <Label>Blood Type</Label>
+                <Input
+                  value={formData.blood_type || ""}
+                  onChange={(e) => setFormData({ ...formData, blood_type: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Emergency Contact */}
-        <div className="border-t pt-4">
-          <h3 className="font-semibold mb-3">Emergency Contact</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Contact Name</Label>
-              <Input
-                value={formData.emergency_contact_name || ""}
-                onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
-                placeholder="Optional"
-              />
-            </div>
-            <div>
-              <Label>Contact Phone</Label>
-              <Input
-                value={formData.emergency_contact_phone || ""}
-                onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
-                placeholder="Optional"
-              />
+          {/* Family Information */}
+          <div className="border-t pt-4">
+            <h3 className="font-semibold mb-3">Family Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Spouse Name</Label>
+                <Input
+                  value={formData.spouse_name || ""}
+                  onChange={(e) => setFormData({ ...formData, spouse_name: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <Label>Spouse Phone</Label>
+                <Input
+                  value={formData.spouse_phone || ""}
+                  onChange={(e) => setFormData({ ...formData, spouse_phone: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <Label>Number of Children</Label>
+                <Input
+                  type="number"
+                  value={formData.children_count || ""}
+                  onChange={(e) => setFormData({ ...formData, children_count: parseInt(e.target.value) || null })}
+                  placeholder="Optional"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Notes */}
-        <div className="border-t pt-4">
-          <h3 className="font-semibold mb-3">Additional Notes</h3>
-          <Textarea
-            value={formData.notes || ""}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            placeholder="Add any additional notes about this member..."
-            className="min-h-24"
-          />
-        </div>
+          {/* Emergency Contact */}
+          <div className="border-t pt-4">
+            <h3 className="font-semibold mb-3">Emergency Contact</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Contact Name</Label>
+                <Input
+                  value={formData.emergency_contact_name || ""}
+                  onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <Label>Contact Phone</Label>
+                <Input
+                  value={formData.emergency_contact_phone || ""}
+                  onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+          </div>
 
-        {/* Actions */}
-        <div className="border-t pt-4 flex justify-end gap-3">
-          <Button variant="outline">Cancel</Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
-      </div>
+          {/* Notes */}
+          <div className="border-t pt-4">
+            <h3 className="font-semibold mb-3">Additional Notes</h3>
+            <Textarea
+              value={formData.notes || ""}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              placeholder="Add any additional notes about this member..."
+              className="min-h-24"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="border-t pt-4 flex justify-end gap-3">
+            <Button onClick={handleSubmit} disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="activities" className="space-y-6 pt-4">
+          {isActivitiesLoading ? (
+            <p className="text-center text-muted-foreground py-8">Loading activities...</p>
+          ) : (
+            <>
+              <div>
+                <h3 className="text-lg font-bold mb-4">Service Attendance</h3>
+                {activities?.attendances && activities.attendances.length > 0 ? (
+                  <div className="grid gap-2">
+                    {activities.attendances.map((att: any) => (
+                      <div key={att.id} className="flex justify-between items-center p-3 bg-muted rounded-lg border">
+                        <div className="flex flex-col">
+                          <span className="font-medium capitalize">{att.service_type.replace('_', ' ')}</span>
+                          <span className="text-xs text-muted-foreground">Checked in: {new Date(att.checked_in_at).toLocaleString()}</span>
+                        </div>
+                        <Badge variant="outline">{att.date}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground border p-4 rounded-lg bg-muted/50 text-center">No attendance records found.</p>
+                )}
+              </div>
+              
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-bold mb-4">Financial Contributions</h3>
+                {activities?.finances && activities.finances.length > 0 ? (
+                  <div className="grid gap-2">
+                    {activities.finances.map((fin: any) => (
+                      <div key={fin.id} className="flex justify-between items-center p-3 bg-muted rounded-lg border">
+                        <div className="flex flex-col">
+                          <span className="font-medium capitalize">{fin.category}</span>
+                          <span className="text-xs text-muted-foreground capitalize">Method: {fin.payment_method}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge variant={fin.status === 'approved' ? 'default' : 'secondary'}>{fin.status}</Badge>
+                          <span className="font-bold text-primary">${parseFloat(fin.amount).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground border p-4 rounded-lg bg-muted/50 text-center">No contribution records found.</p>
+                )}
+              </div>
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
     </DialogContent>
   );
 };

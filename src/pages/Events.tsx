@@ -140,14 +140,14 @@ return (
                   <Card className="h-full border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-muted/20 p-6 rounded-[2rem] hover-lift group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-6">
                       <Badge className="bg-primary/10 text-primary border-none font-black px-4 py-1 rounded-full uppercase tracking-widest text-[10px]">
-                        {e.date}
+                        {e.date ? new Date(e.date).toLocaleDateString() : 'Upcoming'}
                       </Badge>
                     </div>
                     <div className="mt-8">
                       <CardTitle className="text-2xl font-black mb-4 tracking-tight group-hover:text-primary transition-colors line-clamp-1">{e.title}</CardTitle>
-                      {e.time && (
+                      {e.date && (
                         <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground mb-4">
-                          <Clock className="h-4 w-4 text-secondary" /> {e.time}
+                          <Clock className="h-4 w-4 text-secondary" /> {new Date(e.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </div>
                       )}
                       <p className="text-muted-foreground font-medium mb-8 leading-relaxed line-clamp-3">{e.description || "Don't miss out on this life-changing spiritual encounter with the Global Power Church family."}</p>

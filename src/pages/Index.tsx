@@ -24,10 +24,19 @@ const Index = () => {
       if (sermonsResponse.data) {
         setSermons(sermonsResponse.data.results || sermonsResponse.data);
       }
+
+      // Load random quote for front page
+      const quotesResponse = await apiService.getSocialQuotes({ limit: 1 });
+      if (quotesResponse.data && (quotesResponse.data.results || quotesResponse.data).length > 0) {
+        const quotes = quotesResponse.data.results || quotesResponse.data;
+        setFeaturedQuote(quotes[0]);
+      }
     };
 
     loadData();
   }, []);
+
+  const [featuredQuote, setFeaturedQuote] = useState<any>(null);
 
   const whatsappLink = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent("Hello Global Power Church")}`;
 
@@ -304,6 +313,32 @@ const Index = () => {
           </div>
         </section>
       )}
+
+      {/* Quote Section */}
+      <section className="py-24 px-4 bg-background relative overflow-hidden">
+        <div className="container mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-4xl mx-auto text-center"
+          >
+            <Badge variant="outline" className="mb-6 border-secondary text-secondary px-4 py-1 rounded-full font-bold">DAILY WISDOM</Badge>
+            <div className="relative">
+              <MessageSquare className="absolute -top-10 -left-10 w-24 h-24 text-primary/5 -rotate-12" />
+              <h2 className="text-3xl md:text-5xl font-black mb-8 italic leading-tight">
+                "{featuredQuote?.quote_text || "But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles."}"
+              </h2>
+              <p className="text-xl font-bold text-primary mb-10">— {featuredQuote?.author || "Isaiah 40:31"}</p>
+            </div>
+            <Link to="/quotes">
+              <Button size="lg" className="rounded-full bg-secondary hover:bg-secondary/90 text-white font-bold h-14 px-10 shadow-xl transition-all hover:scale-105">
+                Generate Your Own Quote <Sparkles className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+      </section>
 
       {/* Ministries Grid */}
       <section className="py-24 px-4 bg-background overflow-hidden">

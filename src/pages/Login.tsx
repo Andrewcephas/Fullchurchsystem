@@ -79,24 +79,24 @@ const Login = () => {
           <CardContent className="px-10 pb-12">
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Username</Label>
+                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Email Address (Gmail)</Label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                     <User className="h-5 w-5" />
                   </div>
                   <Input 
                     id="username" 
-                    type="text" 
+                    type="email" 
                     value={username} 
                     onChange={(e) => setUsername(e.target.value)} 
                     required 
-                    placeholder="Enter username" 
+                    placeholder="yourname@gmail.com" 
                     className="h-14 pl-12 rounded-2xl border-2 border-muted bg-muted/20 focus:border-primary/50 focus:bg-background transition-all"
                   />
                 </div>
               </div>
               <div className="space-y-3">
-                <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Password</Label>
+                <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Password (Phone Number)</Label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                     <Lock className="h-5 w-5" />
@@ -107,7 +107,7 @@ const Login = () => {
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
                     required 
-                    placeholder="••••••••" 
+                    placeholder="Your phone number" 
                     className="h-14 pl-12 pr-12 rounded-2xl border-2 border-muted bg-muted/20 focus:border-primary/50 focus:bg-background transition-all"
                   />
                   <button

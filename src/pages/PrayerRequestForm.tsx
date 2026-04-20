@@ -37,27 +37,6 @@ const PrayerRequestForm = () => {
     toast({ title: "Request Received", description: "Our prayer team is already lifting you up." });
   };
 
-<<<<<<< HEAD
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-background pt-16 flex items-center justify-center px-4 overflow-hidden relative">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(147,51,234,0.1),transparent_70%)]" />
-        <Card className="max-w-md w-full glass-card border-none p-12 text-center relative z-10 animate-float">
-          <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-            <Heart className="h-12 w-12 text-primary fill-primary/20" />
-          </div>
-          <h2 className="text-3xl font-bold text-foreground mb-4 tracking-tight">Peace be with you</h2>
-          <p className="text-muted-foreground leading-relaxed mb-8">
-            Your prayer request has been received. Our team at Global Power Church is standing with you in faith. Expect God's move in your situation.
-          </p>
-          <Button variant="outline" className="rounded-full px-8" onClick={() => setSubmitted(false)}>
-            Send another request
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <section className="relative pt-32 pb-20 px-4 overflow-hidden">
