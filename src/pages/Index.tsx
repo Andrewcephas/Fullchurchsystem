@@ -53,7 +53,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-20">
+      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden pt-20">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <img 
@@ -149,17 +149,27 @@ const Index = () => {
           >
             {settings.services.map((s, i) => (
               <motion.div key={i} variants={itemVariants}>
-                <Card className="h-full border-none shadow-lg hover:shadow-2xl transition-all duration-500 hover-lift bg-background/60 backdrop-blur-sm group overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-primary transform origin-bottom scale-y-0 group-hover:scale-y-100 transition-transform duration-500" />
-                  <CardHeader className="pb-2">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary transition-colors duration-500">
-                      <Calendar className="h-6 w-6 text-primary group-hover:text-white transition-colors duration-500" />
+                <Card className="h-full border border-border/50 shadow-sm hover:shadow-2xl transition-all duration-500 hover-lift bg-background group overflow-hidden rounded-3xl p-2">
+                  <CardHeader className="pb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center mb-6 group-hover:bg-primary transition-all duration-500 transform group-hover:rotate-6">
+                      <Calendar className="h-7 w-7 text-primary group-hover:text-white transition-colors" />
                     </div>
-                    <CardTitle className="text-xl font-bold tracking-tight group-hover:text-primary transition-colors">{s.title}</CardTitle>
+                    <Badge variant="outline" className="w-fit mb-3 border-primary/20 text-primary font-bold uppercase tracking-wider text-[10px] px-3 py-0.5 rounded-full">
+                      Weekly Service
+                    </Badge>
+                    <CardTitle className="text-2xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors duration-300">
+                      {s.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-black text-secondary mb-3 tracking-tighter">{s.time}</p>
-                    <p className="text-muted-foreground font-medium leading-relaxed">{s.description}</p>
+                    <div className="flex items-baseline gap-2 mb-4">
+                      <p className="text-3xl font-black text-secondary tracking-tighter leading-none">
+                        {s.time.replace('-', ' — ')}
+                      </p>
+                    </div>
+                    <p className="text-muted-foreground font-medium leading-relaxed border-t border-border/50 pt-4 text-sm italic">
+                      {s.description}
+                    </p>
                   </CardContent>
                 </Card>
               </motion.div>

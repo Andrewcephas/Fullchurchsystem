@@ -14,6 +14,7 @@ const Navigation = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const { settings } = useSiteSettings();
+  const isHomePage = location.pathname === "/";
 
   const navItems = [
     {
@@ -53,7 +54,7 @@ const Navigation = () => {
   }, []);
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'glass-navbar py-2' : 'bg-transparent py-4'}`}>
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled || !isHomePage ? 'glass-navbar py-2' : 'bg-transparent py-4'}`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2 group">
@@ -64,7 +65,7 @@ const Navigation = () => {
               className="w-12 h-12 rounded-full object-cover border-2 border-primary/20 group-hover:border-primary transition-colors" 
             />
             <div className="flex flex-col">
-              <span className={`font-bold text-xl leading-none tracking-tight transition-colors ${scrolled ? 'text-foreground' : 'text-white'}`}>Global Power Church</span>
+              <span className={`font-bold text-xl leading-none tracking-tight transition-colors ${scrolled || !isHomePage ? 'text-foreground' : 'text-white'}`}>Global Power Church</span>
               <span className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1">Experience God's Power</span>
             </div>
           </Link>
@@ -74,7 +75,7 @@ const Navigation = () => {
               <div key={item.name} className="relative">
                 {item.hasDropdown ? (
                   <div ref={dropdownRef} className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-                    <Link to={item.href} className={`flex items-center gap-1 px-4 py-2 text-sm font-bold transition-all rounded-full ${location.pathname.startsWith(item.href) ? 'text-primary bg-primary/10' : scrolled ? 'text-foreground hover:text-primary' : 'text-white/90 hover:text-white'}`}>
+                    <Link to={item.href} className={`flex items-center gap-1 px-4 py-2 text-sm font-bold transition-all rounded-full ${location.pathname.startsWith(item.href) ? 'text-primary bg-primary/10' : (scrolled || !isHomePage) ? 'text-foreground hover:text-primary' : 'text-white/90 hover:text-white'}`}>
                       {item.name}
                       <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${showAboutDropdown ? 'rotate-180' : ''}`} />
                     </Link>
@@ -85,7 +86,7 @@ const Navigation = () => {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 10, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute top-full left-0 mt-2 w-52 bg-popover/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-border py-2 z-50"
+                          className="absolute top-full left-0 mt-1 w-64 bg-background/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-primary/10 py-3 z-[100]"
                         >
                           {item.dropdownItems?.map((dropdownItem) => (
                             <Link key={dropdownItem.name} to={dropdownItem.href} className="block px-4 py-2.5 text-sm text-popover-foreground hover:bg-primary/10 hover:text-primary transition-colors mx-2 rounded-xl" onClick={() => setShowAboutDropdown(false)}>
@@ -97,7 +98,7 @@ const Navigation = () => {
                     </AnimatePresence>
                   </div>
                 ) : (
-                  <Link to={item.href} className={`px-4 py-2 text-sm font-bold transition-all rounded-full ${location.pathname === item.href ? 'text-primary bg-primary/10' : scrolled ? 'text-foreground hover:text-primary' : 'text-white/90 hover:text-white'}`}>
+                  <Link to={item.href} className={`px-4 py-2 text-sm font-bold transition-all rounded-full ${location.pathname === item.href ? 'text-primary bg-primary/10' : (scrolled || !isHomePage) ? 'text-foreground hover:text-primary' : 'text-white/90 hover:text-white'}`}>
                     {item.name}
                   </Link>
                 )}
@@ -120,7 +121,7 @@ const Navigation = () => {
 
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon" className={`rounded-full ${scrolled ? 'hover:bg-primary/10' : 'text-white hover:bg-white/10'}`}><Menu className="h-6 w-6" /></Button>
+              <Button variant="ghost" size="icon" className={`rounded-full ${(scrolled || !isHomePage) ? 'hover:bg-primary/10' : 'text-white hover:bg-white/10'}`}><Menu className="h-6 w-6" /></Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-80 bg-background/95 backdrop-blur-xl border-l border-white/10">
               <div className="flex flex-col space-y-6 mt-8 px-2">
