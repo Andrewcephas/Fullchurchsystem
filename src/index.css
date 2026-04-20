@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -90,8 +92,9 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+    @apply bg-background text-foreground antialiased font-sans;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03", "rlig" 1, "calt" 1;
+    scroll-behavior: smooth;
   }
 
   .glass-card {
@@ -111,7 +114,11 @@
   }
 
   .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-2;
+    @apply transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading tracking-tight;
   }
 }
 
@@ -133,4 +140,31 @@
 
 .animate-float {
   animation: float 4s ease-in-out infinite;
+}
+
+@layer components {
+  .glass-navbar {
+    @apply bg-background/80 backdrop-blur-lg border-b border-white/10;
+  }
+
+  .premium-gradient-primary {
+    @apply bg-gradient-to-br from-primary via-primary/90 to-accent;
+  }
+
+  .premium-gradient-secondary {
+    @apply bg-gradient-to-br from-secondary via-secondary/90 to-orange-500;
+  }
+
+  .section-padding {
+    @apply py-20 px-4 md:py-32;
+  }
+}
+
+.text-gradient-primary {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+}
+
+.text-gradient-secondary {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-secondary to-orange-500;
+}
 }
