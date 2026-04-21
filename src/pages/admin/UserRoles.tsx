@@ -31,7 +31,7 @@ const roleColors: Record<string, string> = {
 };
 
 const UserRoles = () => {
-  const { isSuperAdmin } = useUserRole();
+  const { isSuperAdmin, branchId } = useUserRole();
   const [roles, setRoles] = useState<any[]>([]);
   const [loginActivity, setLoginActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +42,8 @@ const UserRoles = () => {
   const [searching, setSearching] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [assignRole, setAssignRole] = useState("secretary");
+  const [customRoles, setCustomRoles] = useState<any[]>([]);
+  const [selectedCustomRoleId, setSelectedCustomRoleId] = useState<string>("");
   const [assignBranchId, setAssignBranchId] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [assignResult, setAssignResult] = useState<any>(null);
@@ -66,9 +68,15 @@ const UserRoles = () => {
     if (response.data) setLoginActivity((response.data as any).results || response.data);
   };
 
+  const fetchCustomRoles = async () => {
+    const response = await apiService.getRoles();
+    if (response.data) setCustomRoles((response.data as any).results || response.data);
+  };
+
   useEffect(() => {
     fetchRoles();
     fetchLoginActivity();
+    fetchCustomRoles();
   }, []);
 
   // Debounced member search
@@ -105,6 +113,19 @@ const UserRoles = () => {
       assignRole,
       assignBranchId || undefined
     );
+    
+    // Also update the UserRole with custom_role_id if selected
+    if (response.data && selectedCustomRoleId) {
+      const userRolesRes = await apiService.getUserRoles({ user: (response.data as any).user_id });
+      const userRole = (userRolesRes.data as any).results?.[0] || (userRolesRes.data as any)[0];
+      if (userRole) {
+        await apiService.updateUserRole(userRole.id, { 
+          ...userRole,
+          custom_role: selectedCustomRoleId 
+        });
+      }
+    }
+    
     setAssigning(false);
 
     if (response.error) {
@@ -150,7 +171,7 @@ const UserRoles = () => {
         </Button>
       </div>
 
-      {/* Member Search — Assign as Pastor/Secretary */}
+      {/* Member Search — Assign as Pastor/Secretary (Super Admin) */}
       {isSuperAdmin && (
         <Card className="border-2 border-primary/20 shadow-lg">
           <CardHeader>
@@ -221,6 +242,91 @@ const UserRoles = () => {
         </Card>
       )}
 
+      {/* Branch Admin: Assign Secretary to their branch */}
+      {!isSuperAdmin && branchId && (
+        <Card className="border-2 border-green-20 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <UserCheck className="h-5 w-5 text-green-500" />
+              Assign Secretary to Your Branch
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Search for a member by name or phone to assign them as secretary for your church branch.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="relative">
+                <Input
+                  value={searchQuery}
+                  onChange={e => { setSearchQuery(e.target.value); setSelectedMember(null); }}
+                  placeholder="Search by member name or phone..."
+                  className="pl-10"
+                />
+              </div>
+              
+              {searchQuery && (
+                <div>
+                  {searchResults.length > 0 ? (
+                    <div className="space-y-2 mt-4">
+                      {searchResults.filter(m => m.branch_id === branchId || !m.branch_id).map(m => (
+                        <div key={m.id} 
+                          onClick={() => { setSelectedMember(m); setSearchQuery(m.name); }}
+                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedMember?.id === m.id ? 'bg-primary/10 border-primary' : 'bg-muted hover:bg-muted/80'}`}
+                        >
+                          <p className="font-medium">{m.name}</p>
+                          <p className="text-sm text-muted-foreground">{m.phone} • {m.member_category || "Member"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mt-2">No members found</p>
+                  )}
+                </div>
+              )}
+              
+              {selectedMember && (
+                <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{selectedMember.name}</p>
+                      <p className="text-sm text-muted-foreground">{selectedMember.phone}</p>
+                    </div>
+                    <Button 
+                      onClick={async () => {
+                        if (!selectedMember?.phone) {
+                          toast({ title: "Phone number required", variant: "destructive" });
+                          return;
+                        }
+                        setAssigning(true);
+                        const response = await apiService.createUserRole({
+                          user: selectedMember.phone,
+                          role: "secretary",
+                          branch_id: branchId
+                        });
+                        setAssigning(false);
+                        if (response.error) {
+                          toast({ title: "Error", description: response.error, variant: "destructive" });
+                        } else {
+                          toast({ title: "Secretary Assigned", description: `${selectedMember.name} is now secretary for this branch` });
+                          setSearchQuery("");
+                          setSelectedMember(null);
+                          fetchRoles();
+                        }
+                      }}
+                      disabled={assigning}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {assigning ? "Assigning..." : "Assign as Secretary"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Assigned Roles Table */}
       <Card>
         <CardHeader>
@@ -257,9 +363,17 @@ const UserRoles = () => {
                       {r.user_email || `User #${r.user}`}
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${roleColors[r.role] || roleColors.member}`}>
-                        {roleLabels[r.role] || r.role}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${roleColors[r.role] || roleColors.member}`}>
+                          {r.role_name || roleLabels[r.role] || r.role}
+                        </span>
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {r.permissions?.slice(0, 3).map((p: string) => (
+                            <Badge key={p} variant="outline" className="text-[9px] py-0 h-4">{p}</Badge>
+                          ))}
+                          {r.permissions?.length > 3 && <span className="text-[9px] text-muted-foreground">+{r.permissions.length - 3} more</span>}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {r.branch_name || "All Branches"}
@@ -354,7 +468,7 @@ const UserRoles = () => {
               </div>
 
               <div>
-                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Role to Assign</Label>
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Legacy Role Category</Label>
                 <Select value={assignRole} onValueChange={setAssignRole}>
                   <SelectTrigger className="mt-1.5">
                     <SelectValue />
@@ -362,6 +476,22 @@ const UserRoles = () => {
                   <SelectContent>
                     <SelectItem value="branch_admin">🏛 Branch Pastor</SelectItem>
                     <SelectItem value="secretary">📋 Secretary</SelectItem>
+                    <SelectItem value="sunday_school_teacher">🏫 Teacher</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Custom Role (Overrides Category)</Label>
+                <Select value={selectedCustomRoleId} onValueChange={setSelectedCustomRoleId}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue placeholder="Select custom role..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No Custom Role</SelectItem>
+                    {customRoles.map(role => (
+                      <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

@@ -81,6 +81,38 @@ class Member(models.Model):
         return self.name
 
 
+class Permission(models.Model):
+    """Specific permission codenames"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    codename = models.CharField(max_length=100, unique=True)
+    category = models.CharField(max_length=100, default='General')
+
+    class Meta:
+        db_table = 'permissions'
+        ordering = ['category', 'name']
+
+    def __str__(self):
+        return f"{self.category}: {self.name}"
+
+
+class Role(models.Model):
+    """Customizable roles with multiple permissions"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(null=True, blank=True)
+    permissions = models.ManyToManyField(Permission, related_name='roles', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'roles'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class UserRole(models.Model):
     """User role and permissions"""
     ROLE_CHOICES = [
@@ -94,6 +126,7 @@ class UserRole(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='role')
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='member')
+    custom_role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, related_name='user_roles')
     branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -102,7 +135,33 @@ class UserRole(models.Model):
         db_table = 'user_roles'
 
     def __str__(self):
-        return f"{self.user.email} - {self.get_role_display()}"
+        return f"{self.user.email} - {self.custom_role.name if self.custom_role else self.get_role_display()}"
+
+    def get_permissions(self):
+        """Get list of permission codenames for this user"""
+        if self.custom_role:
+            permissions = list(self.custom_role.permissions.values_list('codename', flat=True))
+            # Bishop always gets everything if their role name is 'Bishop' or role is 'super_admin'
+            if self.role == 'super_admin' or self.custom_role.name.lower() == 'bishop':
+                return ['*'] # Master permission
+            return permissions
+        
+        # Fallback for legacy roles
+        legacy_permissions = {
+            'super_admin': ['*'],
+            'branch_admin': [
+                'view_members', 'add_members', 'edit_members', 'delete_members',
+                'view_finance', 'add_finance', 'manage_events', 'manage_sermons',
+                'manage_notices', 'manage_prayer_requests', 'view_reports'
+            ],
+            'secretary': [
+                'view_members', 'add_members', 'edit_members', 
+                'manage_attendance', 'manage_sunday_school'
+            ],
+            'sunday_school_teacher': ['manage_sunday_school'],
+            'member': []
+        }
+        return legacy_permissions.get(self.role, [])
 
 
 class Attendance(models.Model):

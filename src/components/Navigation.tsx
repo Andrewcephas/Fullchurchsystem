@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Users, Calendar, Book, Heart, Play, Phone, ChevronDown, ShieldCheck, Quote } from "lucide-react";
+import { Menu, Users, Calendar, Book, Heart, Play, Phone, ChevronDown, ShieldCheck, Quote, Bell } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -117,6 +118,12 @@ const Navigation = () => {
               <Button size="sm" className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300">
                 <ShieldCheck className="h-4 w-4 mr-2" />Admin
               </Button>
+            </Link>
+            <Link to="/admin/notifications" className="relative">
+              <Button variant="ghost" size="icon" className={`rounded-full ${(scrolled || !isHomePage) ? 'hover:bg-primary/10' : 'text-white hover:bg-white/10'}`}>
+                <Bell className="h-5 w-5" />
+              </Button>
+              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">!</span>
             </Link>
           </div>
 

@@ -13,6 +13,7 @@ import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import { useBranches } from "@/hooks/use-branches";
 import BranchSelector from "@/components/admin/BranchSelector";
+import { SmartButton } from "@/components/PermissionControl";
 
 const departments = ["Choir", "Praise & Worship", "Dance", "Youth", "Women", "Men", "Hospitality", "Crusades"];
 const memberCategories = ["Adult", "Youth", "Sunday School"];
@@ -122,7 +123,15 @@ const Members = () => {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport} disabled={!members.length}><Download className="h-4 w-4 mr-2" />Export</Button>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); setForm(emptyForm); } }}>
-            <DialogTrigger asChild><Button onClick={() => { setForm(emptyForm); setEditId(null); setDialogOpen(true); }} className="bg-primary hover:bg-primary/90 text-primary-foreground"><Plus className="h-4 w-4 mr-2" />Add Member</Button></DialogTrigger>
+            <DialogTrigger asChild>
+              <SmartButton 
+                permission="add_members"
+                onClick={() => { setForm(emptyForm); setEditId(null); setDialogOpen(true); }} 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Plus className="h-4 w-4 mr-2" />Add Member
+              </SmartButton>
+            </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editId ? "Edit Member" : "Add New Member"}</DialogTitle></DialogHeader>
               <div className="space-y-4">
@@ -171,51 +180,65 @@ const Members = () => {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-<TableHeader><TableRow>
-  <TableHead>Member</TableHead>
-  <TableHead>Contact</TableHead>
-  <TableHead>Gender</TableHead>
-  <TableHead>Category</TableHead>
-  <TableHead>Department</TableHead>
-  <TableHead>Branch</TableHead>
-  <TableHead>Joined</TableHead>
-  <TableHead>Actions</TableHead>
-</TableRow></TableHeader>
-<TableBody>
-  {filtered.map(m => (
-    <TableRow key={m.id}>
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-            {m.name.split(' ').map(n => n[0]).join('').slice(0,2)}
-          </div>
-          <div>
-            <p className="font-medium">{m.name}</p>
-            {m.date_of_birth && <p className="text-xs text-muted-foreground">DOB: {m.date_of_birth}</p>}
-          </div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div>
-          <p className="text-sm">{m.phone}</p>
-          {m.email && <p className="text-xs text-muted-foreground">{m.email}</p>}
-        </div>
-      </TableCell>
-      <TableCell>
-        {m.gender ? (
-          <Badge variant={m.gender === 'Male' ? 'default' : 'secondary'} className={m.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'}>
-            {m.gender}
-          </Badge>
-        ) : '—'}
-      </TableCell>
-      <TableCell><Badge variant="outline">{m.member_category || "Adult"}</Badge></TableCell>
-      <TableCell><Badge variant="secondary">{m.department || "Unassigned"}</Badge></TableCell>
-      <TableCell className="text-sm">{m.branch_id ? branches.find(b => b.id === m.branch_id)?.branch_name || '—' : '—'}</TableCell>
-      <TableCell className="text-muted-foreground text-sm">{m.join_date || "—"}</TableCell>
-      <TableCell>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Gender</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map(m => (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                            {m.name.split(' ').map(n => n[0]).join('').slice(0,2)}
+                          </div>
+                          <div>
+                            <p className="font-medium">{m.name}</p>
+                            {m.date_of_birth && <p className="text-xs text-muted-foreground">DOB: {m.date_of_birth}</p>}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="text-sm">{m.phone}</p>
+                          {m.email && <p className="text-xs text-muted-foreground">{m.email}</p>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {m.gender ? (
+                          <Badge variant={m.gender === 'Male' ? 'default' : 'secondary'} className={m.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'}>
+                            {m.gender}
+                          </Badge>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell><Badge variant="outline">{m.member_category || "Adult"}</Badge></TableCell>
+                      <TableCell><Badge variant="secondary">{m.department || "Unassigned"}</Badge></TableCell>
+                      <TableCell className="text-sm">{m.branch_id ? branches.find(b => b.id === m.branch_id)?.branch_name || '—' : '—'}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{m.join_date || "—"}</TableCell>
+                      <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(m)}><Pencil className="h-4 w-4 text-primary" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          <SmartButton 
+                            permission="edit_members" 
+                            variant="ghost" size="icon" 
+                            onClick={() => handleEdit(m)}
+                          >
+                            <Pencil className="h-4 w-4 text-primary" />
+                          </SmartButton>
+                          <SmartButton 
+                            permission="delete_members" 
+                            variant="ghost" size="icon" 
+                            onClick={() => handleDelete(m.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </SmartButton>
                         </div>
                       </TableCell>
                     </TableRow>

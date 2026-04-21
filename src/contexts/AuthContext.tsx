@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import apiService from '@/services/api';
 
 interface User {
@@ -10,6 +10,7 @@ interface User {
   is_staff?: boolean;
   is_superuser?: boolean;
   role?: string;
+  permissions?: string[];
   branch?: string;
 }
 
@@ -19,6 +20,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   loading: boolean;
   isAuthenticated: boolean;
+  hasPermission: (codename: string) => boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,30 +42,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is already authenticated on mount
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
-      // Try to access a protected endpoint to check if session is valid
-      const response = await apiService.get('/auth/user/');
+      const response = await apiService.get<User>('/auth/user/');
       if (response.data) {
         setUser(response.data);
+      } else {
+        setUser(null);
       }
     } catch (error) {
-      // Session is invalid or expired
       setUser(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Initial check on mount
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
+  // Periodic refresh for real-time permission sync
+  useEffect(() => {
+    if (!user) return;
+    
+    const interval = setInterval(() => {
+      // Use a more silent check or just refresh user
+      apiService.get<User>('/auth/user/').then(response => {
+        if (response.data) {
+          setUser(response.data);
+        }
+      }).catch(() => {
+        // Silently fail or logout if session is really dead
+      });
+    }, 60000); // 1 minute is enough for sync
+    
+    return () => clearInterval(interval);
+  }, [!!user]); // Only restart interval when login status changes
 
    const login = async (username: string, password: string): Promise<boolean> => {
      try {
        setLoading(true);
-       const response = await apiService.post('/auth/login/', {
+       const response = await apiService.post<any>('/auth/login/', {
          username,
          password,
        });
@@ -71,8 +92,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
          setUser(response.data.user);
          return true;
        }
-       // If we get here, either response.error exists or data lacks user
-       console.error('Login response missing user data:', response);
        return false;
      } catch (error) {
        console.error('Login failed:', error);
@@ -92,12 +111,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const hasPermission = (codename: string): boolean => {
+    if (!user || !user.permissions) return false;
+    if (user.is_superuser) return true;
+    return user.permissions.includes('*') || user.permissions.includes(codename);
+  };
+
+  const refreshUser = async () => {
+    await checkAuthStatus();
+  };
+
   const value: AuthContextType = {
     user,
     login,
     logout,
     loading,
     isAuthenticated: !!user,
+    hasPermission,
+    refreshUser,
   };
 
   return (

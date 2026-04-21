@@ -3,218 +3,125 @@ import { useQuery } from "@tanstack/react-query";
 import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  LineChart, Line, BarChart, Bar, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { Badge } from "@/components/ui/badge";
-import {
-  TrendingUp,
-  Users,
-  DollarSign,
-  Calendar,
-  Activity,
-} from "lucide-react";
+import { TrendingUp, Users, DollarSign, Calendar, Activity } from "lucide-react";
 
-interface Branch {
-  id: string;
-  branch_name: string;
-  location: string;
-}
-
-interface Member {
-  id: string;
-  branch_id: string;
-}
-
-interface Attendance {
-  id: string;
-  count: number;
-  date: string;
-  branch_id: string;
-  service_type: string;
-}
-
-interface Finance {
-  id: string;
-  amount: number;
-  date: string;
-  branch_id: string;
-}
+interface Branch { id: string; branch_name: string; location: string; }
+interface Member { id: string; branch_id: string; date_joined?: string; }
+interface Attendance { id: string; count: number; date: string; branch_id: string; service_type: string; }
+interface Finance { id: string; amount: number; date: string; branch_id: string; }
 
 const AnalyticsEnhanced = () => {
   const { branchId, isSuperAdmin } = useUserRole();
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(branchId || "");
-  const [selectedMetric, setSelectedMetric] = useState("growth");
+  const [selectedBranch, setSelectedBranch] = useState<string>("");
 
-   // Fetch branches
-   const { data: branches = [] } = useQuery({
-     queryKey: ["branches"],
-     queryFn: async () => {
-       const response = await apiService.getBranches();
-       return (response.data?.results || response.data || []) as Branch[];
-     },
-   });
+  // Effective branch: non-super admins always scoped to their branch
+  const effectiveBranch = isSuperAdmin ? (selectedBranch || null) : branchId;
 
-   // Fetch members
-   const { data: members = [] } = useQuery({
-     queryKey: ["members"],
-     queryFn: async () => {
-       const params: any = {};
-       if (!isSuperAdmin && selectedBranch) {
-         params.branch_id = selectedBranch;
-       }
-       const response = await apiService.getMembers(params);
-       return (response.data?.results || response.data || []) as Member[];
-     },
-   });
-
-   // Fetch attendance data
-   const { data: attendanceData = [] } = useQuery({
-     queryKey: ["attendance", selectedBranch],
-     queryFn: async () => {
-       const params: any = {};
-       if (!isSuperAdmin && selectedBranch) {
-         params.branch_id = selectedBranch;
-       } else if (isSuperAdmin && selectedBranch) {
-         params.branch_id = selectedBranch;
-       }
-       const response = await apiService.getAttendance(params);
-       return (response.data?.results || response.data || []) as Attendance[];
-     },
-   });
-
-   // Fetch finance data
-   const { data: financeData = [] } = useQuery({
-     queryKey: ["finance", selectedBranch],
-     queryFn: async () => {
-       const params: any = {};
-       if (!isSuperAdmin && selectedBranch) {
-         params.branch_id = selectedBranch;
-       } else if (isSuperAdmin && selectedBranch) {
-         params.branch_id = selectedBranch;
-       }
-       const response = await apiService.getFinance(params);
-       return (response.data?.results || response.data || []) as Finance[];
-     },
-   });
-
-  // Calculate statistics
-  const membersByBranch: { [key: string]: number } = {};
-  members.forEach((member) => {
-    const branchName =
-      branches.find((b) => b.id === member.branch_id)?.branch_name || "Unknown";
-    membersByBranch[branchName] = (membersByBranch[branchName] || 0) + 1;
+  // Fetch branches (super admin only)
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches"],
+    queryFn: async () => {
+      const response = await apiService.getBranches();
+      return (response.data?.results || response.data || []) as Branch[];
+    },
+    enabled: isSuperAdmin,
   });
 
-  const memberGrowthData = Object.entries(membersByBranch).map(([branch, count]) => ({
-    name: branch,
-    members: count,
-  }));
-
-  // Average attendance
-  const attendanceByDate: { [key: string]: { count: number; date: string } } = {};
-  attendanceData.forEach((record) => {
-    const dateKey = new Date(record.date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    if (!attendanceByDate[dateKey]) {
-      attendanceByDate[dateKey] = { count: 0, date: record.date };
-    }
-    attendanceByDate[dateKey].count += record.count;
+  // Fetch members
+  const { data: members = [] } = useQuery({
+    queryKey: ["analytics-members", effectiveBranch],
+    queryFn: async () => {
+      const params: any = {};
+      if (effectiveBranch) params.branch_id = effectiveBranch;
+      const response = await apiService.getMembers(params);
+      return (response.data?.results || response.data || []) as Member[];
+    },
   });
 
-  const attendanceTrendData = Object.values(attendanceByDate)
+  // Fetch attendance
+  const { data: attendanceData = [] } = useQuery({
+    queryKey: ["analytics-attendance", effectiveBranch],
+    queryFn: async () => {
+      const params: any = {};
+      if (effectiveBranch) params.branch_id = effectiveBranch;
+      const response = await apiService.getAttendance(params);
+      return (response.data?.results || response.data || []) as Attendance[];
+    },
+  });
+
+  // Fetch finance
+  const { data: financeData = [] } = useQuery({
+    queryKey: ["analytics-finance", effectiveBranch],
+    queryFn: async () => {
+      const params: any = {};
+      if (effectiveBranch) params.branch_id = effectiveBranch;
+      const response = await apiService.getFinance(params);
+      return (response.data?.results || response.data || []) as Finance[];
+    },
+  });
+
+  // Member distribution by branch
+  const membersByBranch: Record<string, number> = {};
+  members.forEach(m => {
+    const name = branches.find(b => b.id === m.branch_id)?.branch_name || "Branch";
+    membersByBranch[name] = (membersByBranch[name] || 0) + 1;
+  });
+  const memberDistData = Object.entries(membersByBranch).map(([name, members]) => ({ name, members }));
+
+  // Attendance trend
+  const attByDate: Record<string, { count: number; date: string }> = {};
+  attendanceData.forEach(r => {
+    const key = new Date(r.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (!attByDate[key]) attByDate[key] = { count: 0, date: r.date };
+    attByDate[key].count += r.count;
+  });
+  const attendanceTrendData = Object.values(attByDate)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map((item) => ({
-      date: new Date(item.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      attendance: item.count,
-    }));
+    .slice(-14)
+    .map(item => ({ date: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }), attendance: item.count }));
 
-  // Financial trends
-  const financeByDate: { [key: string]: { amount: number; date: string } } = {};
-  financeData.forEach((record) => {
-    const dateKey = new Date(record.date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    if (!financeByDate[dateKey]) {
-      financeByDate[dateKey] = { amount: 0, date: record.date };
-    }
-    financeByDate[dateKey].amount += record.amount;
+  // Finance trend
+  const finByDate: Record<string, { amount: number; date: string }> = {};
+  financeData.forEach(r => {
+    const key = new Date(r.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (!finByDate[key]) finByDate[key] = { amount: 0, date: r.date };
+    finByDate[key].amount += r.amount;
   });
-
-  const financeTrendData = Object.values(financeByDate)
+  const financeTrendData = Object.values(finByDate)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map((item) => ({
-      date: new Date(item.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      amount: item.amount,
-    }));
+    .slice(-14)
+    .map(item => ({ date: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }), amount: item.amount }));
 
-  // Calculate KPIs
+  // KPIs
   const totalMembers = members.length;
-  const totalAttendance = attendanceData.reduce((sum, item) => sum + item.count, 0);
-  const avgAttendance =
-    attendanceData.length > 0
-      ? (totalAttendance / attendanceData.length).toFixed(0)
-      : "0";
-  const totalFinance = financeData.reduce((sum, item) => sum + item.amount, 0);
-  const avgFinance =
-    financeData.length > 0 ? (totalFinance / financeData.length).toFixed(2) : "0";
+  const totalAttendance = attendanceData.reduce((s, i) => s + i.count, 0);
+  const avgAttendance = attendanceData.length > 0 ? Math.round(totalAttendance / attendanceData.length) : 0;
+  const totalFinance = financeData.reduce((s, i) => s + i.amount, 0);
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h2>
-        <p className="text-muted-foreground">
-          Comprehensive church growth and performance metrics
-        </p>
+        <p className="text-muted-foreground">Comprehensive church growth and performance metrics</p>
       </div>
 
       {/* Filters */}
       {isSuperAdmin && (
         <div className="flex gap-4">
-          <Select value={selectedBranch || ""} onValueChange={setSelectedBranch}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select branch" />
-            </SelectTrigger>
+          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="All Branches" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Branches</SelectItem>
-              {branches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.branch_name}
-                </SelectItem>
-              ))}
+              {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.branch_name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -222,202 +129,122 @@ const AnalyticsEnhanced = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Total Members
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalMembers}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active members</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Avg. Attendance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgAttendance}</div>
-            <p className="text-xs text-muted-foreground mt-1">Per service</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Total Giving
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${totalFinance.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Avg: ${avgFinance} per record
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Branches
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{branches.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active locations</p>
-          </CardContent>
-        </Card>
+        {[
+          { icon: Users, label: "Total Members", value: totalMembers.toString(), sub: "Registered" },
+          { icon: Calendar, label: "Avg Attendance", value: avgAttendance.toString(), sub: "Per service" },
+          { icon: DollarSign, label: "Total Giving", value: `KES ${totalFinance.toLocaleString()}`, sub: `${financeData.length} transactions` },
+          { icon: Activity, label: "Branches", value: branches.length > 0 ? branches.length.toString() : (effectiveBranch ? "1" : "—"), sub: "Active locations" },
+        ].map(stat => (
+          <Card key={stat.label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <stat.icon className="h-4 w-4" />{stat.label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Member Growth */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Member Distribution</CardTitle>
-            <CardDescription>Members by branch</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {memberGrowthData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={memberGrowthData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="members" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-center text-muted-foreground py-8">
-                No member data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {isSuperAdmin && (
+          <Card>
+            <CardHeader><CardTitle>Member Distribution</CardTitle><CardDescription>Members by branch</CardDescription></CardHeader>
+            <CardContent>
+              {memberDistData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={memberDistData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="members" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <p className="text-center text-muted-foreground py-8">No member data available</p>}
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Attendance Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Attendance Trend</CardTitle>
-            <CardDescription>Service attendance over time</CardDescription>
-          </CardHeader>
+        <Card className={!isSuperAdmin ? "lg:col-span-2" : ""}>
+          <CardHeader><CardTitle>Attendance Trend</CardTitle><CardDescription>Service attendance over time</CardDescription></CardHeader>
           <CardContent>
             {attendanceTrendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={attendanceTrendData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis />
                   <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="attendance"
-                    stroke="#10b981"
-                    dot={false}
-                  />
+                  <Line type="monotone" dataKey="attendance" stroke="#10b981" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="text-center text-muted-foreground py-8">
-                No attendance data available
-              </div>
-            )}
+            ) : <p className="text-center text-muted-foreground py-8">No attendance data available</p>}
           </CardContent>
         </Card>
 
-        {/* Financial Trend */}
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Financial Summary</CardTitle>
-            <CardDescription>Giving trends over time</CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle>Giving Trends</CardTitle><CardDescription>Financial giving over time (KES)</CardDescription></CardHeader>
           <CardContent>
             {financeTrendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={financeTrendData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                  <Area
-                    type="monotone"
-                    dataKey="amount"
-                    fill="#f59e0b"
-                    stroke="#d97706"
-                    fillOpacity={0.2}
-                  />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(v: number) => [`KES ${v.toLocaleString()}`, "Amount"]} />
+                  <Area type="monotone" dataKey="amount" fill="#f59e0b" stroke="#d97706" fillOpacity={0.2} />
                 </AreaChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="text-center text-muted-foreground py-8">
-                No financial data available
-              </div>
-            )}
+            ) : <p className="text-center text-muted-foreground py-8">No financial data available</p>}
           </CardContent>
         </Card>
       </div>
 
-      {/* Summary Cards */}
+      {/* Insights */}
       <Card>
-        <CardHeader>
-          <CardTitle>Insights & Recommendations</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Insights & Recommendations</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {attendanceTrendData.length > 0 && (
-            <div className="p-3 border rounded-lg hover:bg-muted transition-colors">
-              <div className="flex items-start gap-3">
-                <TrendingUp className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-sm">Average Service Attendance</p>
-                  <p className="text-sm text-muted-foreground">
-                    Your average service attendance is {avgAttendance} members. Consider
-                    implementing strategies to increase attendance.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="p-3 border rounded-lg hover:bg-muted transition-colors">
             <div className="flex items-start gap-3">
-              <Users className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <TrendingUp className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-sm">Growing Membership</p>
+                <p className="font-semibold text-sm">Average Service Attendance</p>
                 <p className="text-sm text-muted-foreground">
-                  You have {totalMembers} registered members across {branches.length}{" "}
-                  branches. Focus on welcoming new members and providing pastoral care.
+                  Average attendance is <strong>{avgAttendance}</strong> per service.
+                  {avgAttendance < 50 ? " Consider strategies to increase visibility and engagement." : " Great engagement! Keep up the momentum."}
                 </p>
               </div>
             </div>
           </div>
-
-          {financeTrendData.length > 0 && (
-            <div className="p-3 border rounded-lg hover:bg-muted transition-colors">
-              <div className="flex items-start gap-3">
-                <DollarSign className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-sm">Financial Health</p>
-                  <p className="text-sm text-muted-foreground">
-                    Total giving is ${totalFinance.toLocaleString("en-US", {
-                      maximumFractionDigits: 0,
-                    })}
-                    . Monitor giving trends and plan budgets accordingly.
-                  </p>
-                </div>
+          <div className="p-3 border rounded-lg hover:bg-muted transition-colors">
+            <div className="flex items-start gap-3">
+              <Users className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Membership Overview</p>
+                <p className="text-sm text-muted-foreground">
+                  <strong>{totalMembers}</strong> registered members{isSuperAdmin && branches.length > 0 ? ` across ${branches.length} branches` : ""}. 
+                  Focus on welcoming new members and providing pastoral care.
+                </p>
               </div>
             </div>
-          )}
+          </div>
+          <div className="p-3 border rounded-lg hover:bg-muted transition-colors">
+            <div className="flex items-start gap-3">
+              <DollarSign className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Financial Health</p>
+                <p className="text-sm text-muted-foreground">
+                  Total giving: <strong>KES {totalFinance.toLocaleString()}</strong>.
+                  Monitor giving trends and plan budgets accordingly.
+                </p>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

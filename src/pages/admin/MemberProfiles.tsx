@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Phone, Mail, Users, Briefcase } from "lucide-react";
+import { SmartButton } from "@/components/PermissionControl";
 
 interface MemberProfile {
   id: string;
@@ -251,7 +252,8 @@ const MemberProfiles = () => {
                     if (!open) setSelectedMember(null);
                   }}>
                     <DialogTrigger asChild>
-                      <Button 
+                      <SmartButton 
+                        permission="edit_members"
                         variant="outline" 
                         size="sm"
                         onClick={() => {
@@ -261,7 +263,7 @@ const MemberProfiles = () => {
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit Profile
-                      </Button>
+                      </SmartButton>
                     </DialogTrigger>
                     {selectedMember?.id === member.id && (
                       <MemberEditDialog 

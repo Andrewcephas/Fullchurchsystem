@@ -218,6 +218,31 @@ class ApiService {
     return this.delete(`/user-roles/${id}/`);
   }
 
+  // Roles & Permissions
+  async getRoles() {
+    return this.get('/roles/');
+  }
+
+  async getRole(id: string) {
+    return this.get(`/roles/${id}/`);
+  }
+
+  async createRole(data: any) {
+    return this.post('/roles/', data);
+  }
+
+  async updateRole(id: string, data: any) {
+    return this.put(`/roles/${id}/`, data);
+  }
+
+  async deleteRole(id: string) {
+    return this.delete(`/roles/${id}/`);
+  }
+
+  async getPermissions() {
+    return this.get('/permissions/');
+  }
+
   // Login Activity
   async getLoginActivity(filters?: Record<string, any>) {
     return this.get('/login-activity/', filters);

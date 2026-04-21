@@ -12,7 +12,7 @@ from api.views import (
     MemberTransferViewSet, NotificationPreferenceViewSet, BackupLogViewSet,
     DataAccessLogViewSet, PrivateMessageViewSet, SiteSettingsViewSet,
     SocialQuoteViewSet, AnalyticsViewSet, LoginView, LogoutView, UserView,
-    LoginActivityViewSet, AdminUserViewSet
+    LoginActivityViewSet, AdminUserViewSet, PermissionViewSet, RoleViewSet
 )
 
 # Create router and register viewsets
@@ -38,6 +38,8 @@ router.register(r'social-quotes', SocialQuoteViewSet, basename='social-quotes')
 router.register(r'analytics', AnalyticsViewSet, basename='analytics')
 router.register(r'login-activity', LoginActivityViewSet, basename='login-activity')
 router.register(r'admin-users', AdminUserViewSet, basename='admin-users')
+router.register(r'permissions', PermissionViewSet, basename='permissions')
+router.register(r'roles', RoleViewSet, basename='roles')
 
 app_name = 'api'
 

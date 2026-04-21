@@ -6,7 +6,7 @@ REST API serializers for all models
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from api.models import (
-    Branch, Member, UserRole, Attendance, AttendanceMember, Finance, Event,
+    Branch, Member, UserRole, Permission, Role, Attendance, AttendanceMember, Finance, Event,
     Sermon, SundaySchool, SundaySchoolMember, SundaySchoolAttendance, Notice, PrayerRequest,
     Communication, MemberTransfer, NotificationPreference, NotificationSent,
     BackupLog, DataAccessLog, PrivateMessage, SiteSettings, SocialQuote, LoginActivity
@@ -16,19 +16,28 @@ from api.models import (
 class UserSerializer(serializers.ModelSerializer):
     """User serializer with role and branch information"""
     role = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
     branch = serializers.SerializerMethodField()
     branch_id = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'role', 'branch', 'branch_id']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'role', 'permissions', 'branch', 'branch_id']
         read_only_fields = ['id']
 
     def get_role(self, obj):
         try:
+            if hasattr(obj, 'role') and obj.role.custom_role:
+                return obj.role.custom_role.name
             return obj.role.role
         except:
             return None
+
+    def get_permissions(self, obj):
+        try:
+            return obj.role.get_permissions()
+        except:
+            return []
 
     def get_branch(self, obj):
         try:
@@ -73,16 +82,37 @@ class MemberSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
+class PermissionSerializer(serializers.ModelSerializer):
+    """Permission serializer"""
+    class Meta:
+        model = Permission
+        fields = '__all__'
+
+
+class RoleSerializer(serializers.ModelSerializer):
+    """Role serializer with permission details"""
+    permissions_details = PermissionSerializer(many=True, read_only=True, source='permissions')
+    
+    class Meta:
+        model = Role
+        fields = '__all__'
+
+
 class UserRoleSerializer(serializers.ModelSerializer):
     """User role serializer"""
     user_email = serializers.CharField(source='user.email', read_only=True)
     user_username = serializers.CharField(source='user.username', read_only=True)
     branch_name = serializers.CharField(source='branch.branch_name', read_only=True, allow_null=True)
+    role_name = serializers.CharField(source='custom_role.name', read_only=True, allow_null=True)
+    permissions = serializers.SerializerMethodField()
     
     class Meta:
         model = UserRole
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_permissions(self, obj):
+        return obj.get_permissions()
 
 
 class AttendanceMemberSerializer(serializers.ModelSerializer):

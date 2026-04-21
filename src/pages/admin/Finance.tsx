@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, DollarSign, Download, Trash2, Pencil } from "lucide-react";
+import { SmartButton } from "@/components/PermissionControl";
 import { useToast } from "@/hooks/use-toast";
 import apiService from "@/services/api";
 import { useUserRole } from "@/hooks/use-user-role";
@@ -41,7 +42,16 @@ const Finance = () => {
 
    const handleSave = async () => {
      if (!form.type || !form.amount || !form.date) { toast({ title: "Fill required fields", variant: "destructive" }); return; }
-     const payload = { category: form.type.toLowerCase().replace(' ', '_'), amount: parseFloat(form.amount), date: form.date, giver: form.giver, payment_method: form.method.toLowerCase().replace(' ', '_'), notes: form.notes, branch_id: form.branch_id || userBranch || null };
+     const payload = {
+       category: form.type.toLowerCase().replace(/\s+/g, '_'),
+       amount: parseFloat(form.amount),
+       date: form.date,
+       giver: form.giver || null,
+       is_anonymous: !form.giver,
+       payment_method: form.method.toLowerCase().replace(/\s+/g, '_'),
+       notes: form.notes,
+       branch_id: form.branch_id || userBranch || null
+     };
 
      if (editId) {
        const response = await apiService.updateFinance(editId, payload);
@@ -56,7 +66,24 @@ const Finance = () => {
    };
 
    const handleEdit = (r: any) => {
-     setForm({ type: r.category, amount: String(r.amount), date: r.date, giver: r.giver || "", method: r.payment_method || "", notes: r.notes || "", branch_id: r.branch_id || "" });
+     // Map backend category back to display type
+     const categoryToType: Record<string, string> = {
+       tithe: "Tithe", offering: "Offering", donation: "Donation",
+       seed: "Seed", building_fund: "Building Fund", mission_support: "Mission Support"
+     };
+     const methodToDisplay: Record<string, string> = {
+       cash: "Cash", m_pesa: "M-Pesa", mpesa: "M-Pesa",
+       bank_transfer: "Bank Transfer", whatsapp: "WhatsApp"
+     };
+     setForm({
+       type: categoryToType[r.category] || r.category,
+       amount: String(r.amount),
+       date: r.date,
+       giver: r.giver || "",
+       method: methodToDisplay[r.payment_method] || r.payment_method || "",
+       notes: r.notes || "",
+       branch_id: r.branch_id || ""
+     });
      setEditId(r.id); setDialogOpen(true);
    };
 
@@ -85,7 +112,15 @@ const Finance = () => {
           {isSuperAdmin && <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />}
           <Button variant="outline" onClick={handleExport} disabled={!records.length}><Download className="h-4 w-4 mr-2" />Export</Button>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); setForm(emptyForm); } }}>
-            <DialogTrigger asChild><Button onClick={() => { setForm(emptyForm); setEditId(null); setDialogOpen(true); }} className="bg-primary hover:bg-primary/90 text-primary-foreground"><Plus className="h-4 w-4 mr-2" />Add Record</Button></DialogTrigger>
+            <DialogTrigger asChild>
+              <SmartButton 
+                permission="add_finance"
+                onClick={() => { setForm(emptyForm); setEditId(null); setDialogOpen(true); }} 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Plus className="h-4 w-4 mr-2" />Add Record
+              </SmartButton>
+            </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editId ? "Edit Record" : "Add Finance Record"}</DialogTitle></DialogHeader>
               <div className="space-y-4">
@@ -137,8 +172,20 @@ const Finance = () => {
                     <TableCell>{r.payment_method || "—"}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(r)}><Pencil className="h-4 w-4 text-primary" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <SmartButton 
+                          permission="edit_finance" 
+                          variant="ghost" size="icon" 
+                          onClick={() => handleEdit(r)}
+                        >
+                          <Pencil className="h-4 w-4 text-primary" />
+                        </SmartButton>
+                        <SmartButton 
+                          permission="delete_finance" 
+                          variant="ghost" size="icon" 
+                          onClick={() => handleDelete(r.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </SmartButton>
                       </div>
                     </TableCell>
                   </TableRow>

@@ -7,32 +7,35 @@ import {
   LayoutDashboard, Users, ClipboardCheck, DollarSign, Calendar, Book,
   MessageSquare, Heart, BarChart3, LogOut, Menu, ChevronLeft, Settings, Sparkles,
   Building2, GraduationCap, Shield, Bell, Mail, UserPlus, ArrowRightLeft, TrendingUp,
-  HardDrive, Bell as NotificationIcon
+  HardDrive, ShieldAlert
 } from "lucide-react";
+import { SmartLink } from "@/components/PermissionControl";
+import apiService from "@/services/api";
 
 const sidebarItems = [
-  { title: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ['super_admin', 'branch_admin', 'secretary', 'sunday_school_teacher'] },
-  { title: "Branches", href: "/admin/branches", icon: Building2, roles: ['super_admin'] },
-  { title: "Members", href: "/admin/members", icon: Users, roles: ['super_admin', 'branch_admin', 'secretary'] },
-  { title: "Member Profiles", href: "/admin/member-profiles", icon: UserPlus, badge: "NEW", roles: ['super_admin', 'branch_admin', 'secretary'] },
-  { title: "Member Transfers", href: "/admin/member-transfers", icon: ArrowRightLeft, badge: "NEW", roles: ['super_admin', 'branch_admin'] },
-  { title: "Attendance", href: "/admin/attendance", icon: ClipboardCheck, roles: ['super_admin', 'branch_admin', 'secretary'] },
-  { title: "Finance", href: "/admin/finance", icon: DollarSign, roles: ['super_admin', 'branch_admin'] },
-  { title: "Finance Reports", href: "/admin/finance-reports", icon: TrendingUp, badge: "NEW", roles: ['super_admin', 'branch_admin'] },
-  { title: "Events", href: "/admin/events", icon: Calendar, roles: ['super_admin', 'branch_admin', 'secretary'] },
-  { title: "Sermons", href: "/admin/sermons", icon: Book, roles: ['super_admin', 'branch_admin'] },
-  { title: "Sunday School", href: "/admin/sunday-school", icon: GraduationCap, roles: ['super_admin', 'branch_admin', 'sunday_school_teacher'] },
-  { title: "Notices", href: "/admin/notices", icon: Bell, roles: ['super_admin', 'branch_admin', 'secretary'] },
-  { title: "Messages", href: "/admin/messages", icon: Mail, roles: ['super_admin', 'branch_admin', 'secretary', 'sunday_school_teacher'] },
-  { title: "Communications", href: "/admin/communications", icon: MessageSquare, roles: ['super_admin', 'branch_admin', 'secretary'] },
-  { title: "Prayer Requests", href: "/admin/prayer-requests", icon: Heart, roles: ['super_admin', 'branch_admin', 'secretary'] },
-  { title: "Social Quotes", href: "/admin/social-quotes", icon: Sparkles, roles: ['super_admin', 'branch_admin'] },
-  { title: "Notifications", href: "/admin/notifications", icon: NotificationIcon, badge: "NEW", roles: ['super_admin', 'branch_admin', 'secretary', 'sunday_school_teacher'] },
-  { title: "Analytics", href: "/admin/analytics", icon: BarChart3, roles: ['super_admin', 'branch_admin'] },
-  { title: "Analytics Enhanced", href: "/admin/analytics-enhanced", icon: TrendingUp, badge: "ENHANCED", roles: ['super_admin', 'branch_admin'] },
-  { title: "Backup & Security", href: "/admin/backup-security", icon: HardDrive, badge: "NEW", roles: ['super_admin'] },
-  { title: "User Roles", href: "/admin/user-roles", icon: Shield, roles: ['super_admin'] },
-  { title: "Settings", href: "/admin/settings", icon: Settings, roles: ['super_admin'] },
+  { title: "Dashboard", href: "/admin", icon: LayoutDashboard, permission: "" },
+  { title: "Branches", href: "/admin/branches", icon: Building2, permission: "manage_branches" },
+  { title: "Members", href: "/admin/members", icon: Users, permission: "view_members" },
+  { title: "Member Profiles", href: "/admin/member-profiles", icon: UserPlus, badge: "NEW", permission: "view_members" },
+  { title: "Member Transfers", href: "/admin/member-transfers", icon: ArrowRightLeft, badge: "NEW", permission: "view_members" },
+  { title: "Attendance", href: "/admin/attendance", icon: ClipboardCheck, permission: "manage_attendance" },
+  { title: "Finance", href: "/admin/finance", icon: DollarSign, permission: "view_finance" },
+  { title: "Finance Reports", href: "/admin/finance-reports", icon: TrendingUp, badge: "NEW", permission: "view_reports" },
+  { title: "Events", href: "/admin/events", icon: Calendar, permission: "manage_events" },
+  { title: "Sermons", href: "/admin/sermons", icon: Book, permission: "manage_sermons" },
+  { title: "Sunday School", href: "/admin/sunday-school", icon: GraduationCap, permission: "manage_sunday_school" },
+  { title: "Notices", href: "/admin/notices", icon: Bell, permission: "manage_notices" },
+  { title: "Messages", href: "/admin/messages", icon: Mail, permission: "" },
+  { title: "Communications", href: "/admin/communications", icon: MessageSquare, permission: "manage_communications" },
+  { title: "Prayer Requests", href: "/admin/prayer-requests", icon: Heart, permission: "manage_prayer_requests" },
+  { title: "Social Quotes", href: "/admin/social-quotes", icon: Sparkles, permission: "manage_sermons" },
+  { title: "Notifications", href: "/admin/notifications", icon: Bell, badge: "NEW", permission: "" },
+  { title: "Analytics", href: "/admin/analytics", icon: BarChart3, permission: "view_reports" },
+  { title: "Analytics Enhanced", href: "/admin/analytics-enhanced", icon: TrendingUp, badge: "ENHANCED", permission: "view_reports" },
+  { title: "Backup & Security", href: "/admin/backup-security", icon: HardDrive, badge: "NEW", permission: "manage_roles_permissions" },
+  { title: "Roles Management", href: "/admin/roles-management", icon: ShieldAlert, badge: "PRO", permission: "manage_roles_permissions" },
+  { title: "User Roles", href: "/admin/user-roles", icon: Shield, permission: "manage_roles_permissions" },
+  { title: "Settings", href: "/admin/settings", icon: Settings, permission: "manage_roles_permissions" },
 ];
 
 const AdminLayout = () => {
@@ -48,12 +51,21 @@ const AdminLayout = () => {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  // Check unread messages (placeholder - will be implemented with API)
+  // Poll for unread private messages every 30s
+  const fetchUnread = async () => {
+    if (!user?.id) return;
+    const res = await apiService.getPrivateMessages({ receiver: user.id });
+    const msgs = (res.data as any)?.results || res.data || [];
+    const unread = msgs.filter((m: any) => !m.is_read).length;
+    setUnreadMessages(unread);
+  };
+
   useEffect(() => {
     if (!user) return;
-    // TODO: Implement unread messages count with Django API
-    setUnreadMessages(0);
-  }, [user, location]);
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id, location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -82,7 +94,9 @@ const AdminLayout = () => {
           {!collapsed && (
             <div className="flex items-center gap-2">
               <img src="/images/gpc-logo.png" alt="GPC" className="w-8 h-8 rounded-full" />
-              <span className="font-bold text-sm">GPC Admin</span>
+              <span className="font-bold text-sm">
+                {user?.is_superuser || user?.role === 'super_admin' ? "Bishop Oversight" : "Branch Admin"}
+              </span>
             </div>
           )}
           <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="text-sidebar-foreground hover:bg-sidebar-accent">
@@ -90,17 +104,15 @@ const AdminLayout = () => {
           </Button>
         </div>
         <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
-          {sidebarItems.filter((item: any) => {
-            if (!user) return false;
-            if (user.is_superuser) return true;
-            const userRole = user.role || 'member';
-            if (userRole === 'super_admin') return true;
-            return item.roles.includes(userRole);
-          }).map((item: any) => {
+          {sidebarItems.map((item: any) => {
             const isActive = location.pathname === item.href;
             return (
-              <Link key={item.href} to={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent'}`}>
+              <SmartLink 
+                key={item.href} 
+                to={item.href}
+                permission={item.permission}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent'}`}
+              >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && (
                   <>
@@ -115,7 +127,7 @@ const AdminLayout = () => {
                 {!collapsed && item.href === "/admin/messages" && unreadMessages > 0 && (
                   <Badge variant="destructive" className="ml-auto text-xs h-5 px-1.5">{unreadMessages}</Badge>
                 )}
-              </Link>
+              </SmartLink>
             );
           })}
         </nav>
@@ -134,7 +146,23 @@ const AdminLayout = () => {
           <h1 className="text-lg font-semibold text-foreground">
             {sidebarItems.find(i => i.href === location.pathname)?.title || "Dashboard"}
           </h1>
-          <div className="ml-auto text-sm text-muted-foreground">{user.username}</div>
+          <div className="ml-auto flex items-center gap-3">
+            {user?.branch && <Badge variant="outline" className="text-[10px] uppercase">{user.branch}</Badge>}
+            {/* Notification Bell */}
+            <button
+              onClick={() => navigate("/admin/messages")}
+              className="relative p-1.5 rounded-lg hover:bg-muted transition-colors"
+              title={unreadMessages > 0 ? `${unreadMessages} unread message${unreadMessages > 1 ? 's' : ''}` : 'Messages'}
+            >
+              <Bell className={`h-5 w-5 ${unreadMessages > 0 ? 'text-red-500 animate-[wiggle_1s_ease-in-out_infinite]' : 'text-muted-foreground'}`} />
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 shadow-md">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
+            </button>
+            <div className="text-sm text-muted-foreground font-medium">{user.username}</div>
+          </div>
         </header>
         <div className="p-6"><Outlet /></div>
       </main>

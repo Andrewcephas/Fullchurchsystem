@@ -16,6 +16,7 @@ import Give from "@/pages/Give";
 import LiveStream from "@/pages/LiveStream";
 import Contact from "@/pages/Contact";
 import Quotes from "@/pages/Quotes";
+import Notices from "@/pages/Notices";
 import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -36,7 +37,7 @@ import SocialQuotes from "@/pages/admin/SocialQuotes";
 import Branches from "@/pages/admin/Branches";
 import SundaySchool from "@/pages/admin/SundaySchool";
 import UserRoles from "@/pages/admin/UserRoles";
-import Notices from "@/pages/admin/Notices";
+import AdminNotices from "@/pages/admin/Notices";
 import Messages from "@/pages/admin/Messages";
 import MemberProfiles from "@/pages/admin/MemberProfiles";
 import MemberTransfers from "@/pages/admin/MemberTransfers";
@@ -44,6 +45,7 @@ import FinanceReports from "@/pages/admin/FinanceReports";
 import NotificationPreferences from "@/pages/admin/NotificationPreferences";
 import AnalyticsEnhanced from "@/pages/admin/AnalyticsEnhanced";
 import BackupAndSecurity from "@/pages/admin/BackupAndSecurity";
+import RolesManagement from "@/pages/admin/RolesManagement";
 
 function App() {
   return (
@@ -64,6 +66,7 @@ function App() {
         <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
         <Route path="/quotes" element={<PublicLayout><Quotes /></PublicLayout>} />
         <Route path="/prayer-request" element={<PublicLayout><PrayerRequestForm /></PublicLayout>} />
+        <Route path="/notices" element={<PublicLayout><Notices /></PublicLayout>} />
         <Route path="/login" element={<Login />} />
 
         <Route path="/admin" element={<AdminLayout />}>
@@ -82,12 +85,13 @@ function App() {
           <Route path="analytics-enhanced" element={<AnalyticsEnhanced />} />
           <Route path="notifications" element={<NotificationPreferences />} />
           <Route path="backup-security" element={<BackupAndSecurity />} />
+          <Route path="roles-management" element={<RolesManagement />} />
           <Route path="settings" element={<Settings />} />
           <Route path="social-quotes" element={<SocialQuotes />} />
           <Route path="branches" element={<Branches />} />
           <Route path="sunday-school" element={<SundaySchool />} />
           <Route path="user-roles" element={<UserRoles />} />
-          <Route path="notices" element={<Notices />} />
+          <Route path="notices" element={<AdminNotices />} />
           <Route path="messages" element={<Messages />} />
         </Route>
 

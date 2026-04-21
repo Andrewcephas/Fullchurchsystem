@@ -17,7 +17,8 @@ from api.models import (
     Branch, Member, UserRole, Attendance, AttendanceMember, Finance, Event,
     Sermon, SundaySchool, SundaySchoolMember, SundaySchoolAttendance, Notice, PrayerRequest,
     Communication, MemberTransfer, NotificationPreference, NotificationSent,
-    BackupLog, DataAccessLog, PrivateMessage, SiteSettings, SocialQuote, LoginActivity
+    BackupLog, DataAccessLog, PrivateMessage, SiteSettings, SocialQuote, LoginActivity,
+    Permission, Role
 )
 from api.serializers import (
     BranchSerializer, MemberSerializer, UserRoleSerializer, AttendanceSerializer,
@@ -26,7 +27,7 @@ from api.serializers import (
     CommunicationSerializer, MemberTransferSerializer, NotificationPreferenceSerializer,
     NotificationSentSerializer, BackupLogSerializer, DataAccessLogSerializer,
     PrivateMessageSerializer, SiteSettingsSerializer, UserSerializer, SocialQuoteSerializer,
-    LoginActivitySerializer
+    LoginActivitySerializer, PermissionSerializer, RoleSerializer
 )
 
 
@@ -42,9 +43,9 @@ class IsSuperAdmin(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         try:
-            return request.user.role.role == 'super_admin'
+            return request.user.role.role == 'super_admin' or request.user.is_superuser
         except:
-            return False
+            return request.user.is_superuser
 
 
 class IsBranchAdminOrSuper(permissions.BasePermission):
@@ -53,9 +54,51 @@ class IsBranchAdminOrSuper(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
         try:
-            return request.user.role.role in ['super_admin', 'branch_admin']
+            return request.user.role.role in ['super_admin', 'branch_admin'] or request.user.is_superuser
+        except:
+            return request.user.is_superuser
+
+
+class HasPermission(permissions.BasePermission):
+    """
+    Generic permission check based on user's role permissions.
+    Expects view to have 'required_permission' attribute.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+            
+        # Super admins bypass everything
+        try:
+            if request.user.role.role == 'super_admin' or request.user.is_superuser:
+                return True
+        except:
+            if request.user.is_superuser:
+                return True
+            
+        required_perm = getattr(view, 'required_permission', None)
+        if not required_perm:
+            return True # If no permission specified, allow
+            
+        try:
+            user_perms = request.user.role.get_permissions()
+            return '*' in user_perms or required_perm in user_perms
         except:
             return False
+
+
+class PermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    """Available permissions list"""
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+    permission_classes = [IsSuperAdmin]
+
+
+class RoleViewSet(viewsets.ModelViewSet):
+    """Custom roles management"""
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    permission_classes = [IsSuperAdmin]
 
 
 # Viewsets
@@ -87,11 +130,19 @@ class MemberViewSet(viewsets.ModelViewSet):
             return Member.objects.none()
         
         try:
-            if user.role.role == 'super_admin':
+            # Bishop/Super Admin sees everything
+            if user.role.role == 'super_admin' or user.is_superuser:
+                branch_id = self.request.query_params.get('branch_id')
+                if branch_id:
+                    return Member.objects.filter(branch_id=branch_id)
                 return Member.objects.all()
-            else:
+            
+            # Branch Pastor/Secretary sees only their branch
+            if user.role.branch:
                 return Member.objects.filter(branch=user.role.branch)
-        except:
+            
+            return Member.objects.none()
+        except Exception:
             return Member.objects.none()
 
     @action(detail=True, methods=['get'])
@@ -229,11 +280,19 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             return Attendance.objects.none()
         
         try:
-            if user.role.role == 'super_admin':
+            # Bishop/Super Admin sees everything
+            if user.role.role == 'super_admin' or user.is_superuser:
+                branch_id = self.request.query_params.get('branch_id')
+                if branch_id:
+                    return Attendance.objects.filter(branch_id=branch_id)
                 return Attendance.objects.all()
-            else:
+            
+            # Branch Pastor/Secretary sees only their branch
+            if user.role.branch:
                 return Attendance.objects.filter(branch=user.role.branch)
-        except:
+            
+            return Attendance.objects.none()
+        except Exception:
             return Attendance.objects.none()
 
     @action(detail=True, methods=['post'])
@@ -280,11 +339,19 @@ class FinanceViewSet(viewsets.ModelViewSet):
             return Finance.objects.none()
         
         try:
-            if user.role.role == 'super_admin':
+            # Bishop/Super Admin sees everything
+            if user.role.role == 'super_admin' or user.is_superuser:
+                branch_id = self.request.query_params.get('branch_id')
+                if branch_id:
+                    return Finance.objects.filter(branch_id=branch_id)
                 return Finance.objects.all()
-            else:
+            
+            # Branch Pastor sees only their branch
+            if user.role.branch:
                 return Finance.objects.filter(branch=user.role.branch)
-        except:
+            
+            return Finance.objects.none()
+        except Exception:
             return Finance.objects.none()
 
     @action(detail=False, methods=['post'])
@@ -947,12 +1014,17 @@ class AnalyticsViewSet(viewsets.ViewSet):
     def member_growth(self, request):
         """Member growth statistics"""
         user = request.user
+        branch_id = request.query_params.get('branch_id')
+        
         try:
-            if user.role.role == 'super_admin':
-                branches = Branch.objects.all()
+            if user.role.role == 'super_admin' or user.is_superuser:
+                if branch_id:
+                    branches = Branch.objects.filter(id=branch_id)
+                else:
+                    branches = Branch.objects.all()
             else:
                 branches = Branch.objects.filter(id=user.role.branch_id)
-        except:
+        except Exception:
             branches = Branch.objects.none()
         
         data = []
@@ -969,12 +1041,17 @@ class AnalyticsViewSet(viewsets.ViewSet):
     def attendance_summary(self, request):
         """Attendance summary"""
         user = request.user
+        branch_id = request.query_params.get('branch_id')
+        
         try:
-            if user.role.role == 'super_admin':
-                attendance = Attendance.objects.all()
+            if user.role.role == 'super_admin' or user.is_superuser:
+                if branch_id:
+                    attendance = Attendance.objects.filter(branch_id=branch_id)
+                else:
+                    attendance = Attendance.objects.all()
             else:
                 attendance = Attendance.objects.filter(branch=user.role.branch)
-        except:
+        except Exception:
             attendance = Attendance.objects.none()
         
         summary = {
@@ -989,12 +1066,17 @@ class AnalyticsViewSet(viewsets.ViewSet):
     def financial_summary(self, request):
         """Financial summary"""
         user = request.user
+        branch_id = request.query_params.get('branch_id')
+        
         try:
-            if user.role.role == 'super_admin':
-                finance = Finance.objects.all()
+            if user.role.role == 'super_admin' or user.is_superuser:
+                if branch_id:
+                    finance = Finance.objects.filter(branch_id=branch_id)
+                else:
+                    finance = Finance.objects.all()
             else:
                 finance = Finance.objects.filter(branch=user.role.branch)
-        except:
+        except Exception:
             finance = Finance.objects.none()
         
         summary = {
@@ -1169,9 +1251,11 @@ class AdminUserViewSet(viewsets.ViewSet):
         )
 
         # Create user role
+        custom_role_id = request.data.get('custom_role_id')
         UserRole.objects.create(
             user=user,
             role=role,
+            custom_role_id=custom_role_id if custom_role_id else None,
             branch_id=branch_id if branch_id else None
         )
 
