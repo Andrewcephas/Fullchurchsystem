@@ -1,5 +1,15 @@
 {
-  "buildCommand": "npm run build",
   "installCommand": "npm install && uv pip install -r requirements.txt --system",
-  "outputDirectory": "dist"
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "church_backend/wsgi.py"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "church_backend/wsgi.py"
+    }
+  ]
 }
