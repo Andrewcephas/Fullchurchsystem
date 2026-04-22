@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build && uv pip install -r requirements.txt",
+  "buildCommand": "npm run build",
   "installCommand": "npm install && uv pip install -r requirements.txt --system",
   "outputDirectory": "dist"
 }
