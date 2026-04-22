@@ -69,10 +69,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'church_backend.wsgi.application'
 
 # Database - SQLite Configuration (temporary - change to MySQL later)
+DB_PATH = BASE_DIR / 'db.sqlite3'
+if not DB_PATH.exists():
+    import sqlite3
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.close()
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': DB_PATH,
     }
 }
 
