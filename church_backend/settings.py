@@ -131,6 +131,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:5173',
@@ -140,6 +141,9 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8080',
     'http://127.0.0.1:8081',
+    'https://churchtesting.catech.co.ke',
+    'https://fullchurch.catech.co.ke',
+    'https://fullchurchsystem-nkfil5br1-andrewcephas-projects.vercel.app',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
