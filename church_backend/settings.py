@@ -185,4 +185,5 @@ SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
 # CSRF Configuration
 CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False').lower() in ('true', '1', 't')
 CSRF_COOKIE_HTTPONLY = False
+# Combine backend domain and frontend CORS origins for CSRF trust
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
