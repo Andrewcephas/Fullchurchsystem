@@ -72,13 +72,25 @@ WSGI_APPLICATION = 'church_backend.wsgi.application'
 
 # Database Configuration using dj-database-url
 # Render provides DATABASE_URL after attaching a database (during runtime, not build)
-# Use SQLite as fallback for build/collection phase
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        conn_max_age=600
-    )
-}
+# Use explicit env check to handle empty DATABASE_URL during build
+import dj_database_url
+
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600
+        )
+    }
+else:
+    # Fallback to SQLite during build/collection when DATABASE_URL not yet available
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation - relaxed to allow phone numbers as passwords
 AUTH_PASSWORD_VALIDATORS = [
