@@ -18,10 +18,11 @@ class UserSerializer(serializers.ModelSerializer):
     """User serializer with role and branch information"""
     role = serializers.SerializerMethodField()
     branch = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'role', 'branch']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'role', 'branch', 'permissions']
         read_only_fields = ['id']
 
     def get_role(self, obj):
@@ -30,6 +31,21 @@ class UserSerializer(serializers.ModelSerializer):
             return user_role.role
         except:
             return None
+
+    def get_permissions(self, obj):
+        try:
+            role = obj.role.role
+            if role == 'super_admin':
+                return ['*']  # Full access
+            elif role == 'branch_admin':
+                return ['view_members', 'manage_attendance', 'view_finance', 'manage_events', 'manage_sermons', 'view_reports']
+            elif role == 'secretary':
+                return ['view_members', 'manage_attendance', 'manage_notices', 'manage_communications', 'manage_prayer_requests']
+            elif role == 'sunday_school_teacher':
+                return ['manage_sunday_school']
+            return []
+        except:
+            return []
 
     def get_branch(self, obj):
         try:
