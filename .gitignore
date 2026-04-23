@@ -4,6 +4,18 @@ venv/
 *.log
 *.local
 .env
+*.md
+*.json
+*.lock
+*.lockb
+*.js
+*.ts
+*.bat
+*.sh
+*.txt
+*.sqlite3
+__pycache__/
+bun.lock
 
 # Frontend
 frontend/dist
@@ -11,14 +23,18 @@ frontend/node_modules
 frontend/.env
 frontend/.env.local
 frontend/.env.*.local
+frontend/tsconfig.tsbuildinfo
+frontend/.vite/
 
 # Backend
 church_backend/venv/
 church_backend/*.log
 church_backend/.env
 church_backend/__pycache__/
-*.pyc
-__pycache__/
+church_backend/db.sqlite3
+church_backend/*.pyc
+church_backend/static/
+church_backend/media/
 
 # IDE
 .vscode/
