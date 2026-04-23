@@ -17,7 +17,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-church-management-sys
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 't')
 
 # Allowed hosts - configure via environment variable
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 # Application definition
 INSTALLED_APPS = [
