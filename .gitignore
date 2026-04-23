@@ -1,40 +1,27 @@
 # Root
 node_modules/
 venv/
+.venv/
 *.log
-*.local
 .env
-*.md
-*.json
-*.lock
-*.lockb
-*.js
-*.ts
-*.bat
-*.sh
-*.txt
-*.sqlite3
-__pycache__/
-bun.lock
+.env.local
 
 # Frontend
-frontend/dist
-frontend/node_modules
-frontend/.env
+frontend/dist/
+frontend/node_modules/
 frontend/.env.local
 frontend/.env.*.local
 frontend/tsconfig.tsbuildinfo
 frontend/.vite/
 
 # Backend
-church_backend/venv/
-church_backend/*.log
-church_backend/.env
-church_backend/__pycache__/
-church_backend/db.sqlite3
-church_backend/*.pyc
-church_backend/static/
-church_backend/media/
+backend/__pycache__/
+backend/*.log
+backend/.env
+backend/db.sqlite3
+backend/*.pyc
+backend/staticfiles/
+backend/media/
 
 # IDE
 .vscode/

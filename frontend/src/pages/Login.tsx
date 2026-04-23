@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, Eye, EyeOff, Lock, User, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import api from "@/services/api";
 
 const getRedirectPath = (role: string | undefined): string => {
   switch (role) {
@@ -79,14 +80,14 @@ const Login = () => {
           <CardContent className="px-10 pb-12">
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Email Address (Gmail)</Label>
+                <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Email or Username</Label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                     <User className="h-5 w-5" />
                   </div>
                   <Input 
                     id="username" 
-                    type="email" 
+                    type="text" 
                     value={username} 
                     onChange={(e) => setUsername(e.target.value)} 
                     required 
@@ -118,6 +119,37 @@ const Login = () => {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+              </div>
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!username) {
+                      toast({ 
+                        title: "Username required", 
+                        description: "Please enter your username or email above first.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    try {
+                      const response = await api.requestPasswordReset(username);
+                      toast({ 
+                        title: "Request submitted", 
+                        description: response.data?.message || "Please contact your Bishop for approval." 
+                      });
+                    } catch (error) {
+                      toast({ 
+                        title: "Error", 
+                        description: "Failed to submit reset request.",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest"
+                >
+                  Forgot Password?
+                </button>
               </div>
               <Button 
                 type="submit" 

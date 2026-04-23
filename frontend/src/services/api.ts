@@ -591,12 +591,21 @@ class ApiService {
       return this.get('/admin-users/', { role, branch_id: branchId });
     }
 
-    // Assign member as admin (Secretary or Pastor)
-    async assignMemberAsAdmin(memberId: string, role: string, branchId?: string) {
-      return this.post(`/members/${memberId}/assign_as_admin/`, {
-        role,
-        branch_id: branchId || null,
-      });
+    // Password Reset
+    async requestPasswordReset(username: string) {
+      return this.post('/admin-users/request_reset/', { username });
+    }
+
+    async getPasswordResetRequests() {
+      return this.get('/password-resets/');
+    }
+
+    async approvePasswordReset(id: string, newPassword: string) {
+      return this.post(`/password-resets/${id}/approve/`, { new_password: newPassword });
+    }
+
+    async rejectPasswordReset(id: string) {
+      return this.post(`/password-resets/${id}/reject/`, {});
     }
   }
 
