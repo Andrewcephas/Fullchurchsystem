@@ -72,20 +72,18 @@ WSGI_APPLICATION = 'church_backend.wsgi.application'
 
 # Database Configuration using dj-database-url
 # Render provides DATABASE_URL after attaching a database (during runtime, not build)
-# Use explicit env check to handle empty/invalid DATABASE_URL during build
+# Fallback to SQLite during build phase when DATABASE_URL is not set
 import dj_database_url
 
-DATABASE_URL = os.environ.get('DATABASE_URL', '')
-# Only use dj_database_url if DATABASE_URL looks like a valid database URL
-if DATABASE_URL and DATABASE_URL.startswith(('postgres://', 'postgresql://', 'mysql://', 'sqlite://')):
+_db_url = os.environ.get('DATABASE_URL', '').strip()
+if _db_url:
     DATABASES = {
         'default': dj_database_url.config(
-            default=DATABASE_URL,
+            default=_db_url,
             conn_max_age=600
         )
     }
 else:
-    # Fallback to SQLite during build/collection when DATABASE_URL not yet available
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
