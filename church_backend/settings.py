@@ -71,9 +71,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'church_backend.wsgi.application'
 
 # Database Configuration using dj-database-url
+# Render provides DATABASE_URL after attaching a database (during runtime, not build)
+# Use SQLite as fallback for build/collection phase
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', f'sqlite:///{BASE_DIR / "db.sqlite3"}'),
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
         conn_max_age=600
     )
 }
