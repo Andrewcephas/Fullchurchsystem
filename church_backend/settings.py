@@ -159,9 +159,11 @@ REST_FRAMEWORK = {
     }
 }
 
-# CORS Configuration - Configure via CORS_ALLOWED_ORIGINS environment variable
-CORS_ALLOW_ALL_ORIGINS = False  # Never use True in production
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # Logging Configuration
@@ -199,4 +201,4 @@ SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
 CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False').lower() in ('true', '1', 't')
 CSRF_COOKIE_HTTPONLY = False
 # Combine backend domain and frontend CORS origins for CSRF trust
-CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://localhost:8080').split(',')
